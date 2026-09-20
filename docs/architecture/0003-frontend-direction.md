@@ -2,7 +2,7 @@
 
 ## Status
 
-Aceito como fallback inicial.
+Aceito.
 
 ## Direção
 
@@ -17,9 +17,3 @@ próximas decisões — não uma parede de gráficos.
 - Gráficos têm resumo textual, tooltips acessíveis e estado vazio explicativo.
 - Loading usa skeletons discretos; erros oferecem ação de tentar novamente.
 - A tela inicial explica como registrar pelo WhatsApp quando ainda não há dados.
-
-## Nota sobre a skill solicitada
-
-A skill local `Frontend Designer` não estava disponível nesta execução. A interface
-será implementada seguindo esta direção explícita e os requisitos de acessibilidade
-do produto; a direção poderá ser revisada quando a skill for instalada no ambiente.

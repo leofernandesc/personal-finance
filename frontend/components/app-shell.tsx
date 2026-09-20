@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   PiggyBank,
   ReceiptText,
   Settings,
@@ -22,6 +23,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { Badge, Button } from "@/components/ui";
+import { api } from "@/lib/api";
+import type { WhatsAppIdentity } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
@@ -107,6 +110,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [whatsappIdentity, setWhatsAppIdentity] = useState<WhatsAppIdentity | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setWhatsAppIdentity(null);
+      return;
+    }
+    const loadIdentity = () => {
+      api.whatsappIdentity().then(setWhatsAppIdentity).catch(() => setWhatsAppIdentity(null));
+    };
+    loadIdentity();
+    window.addEventListener("whatsapp-identity-changed", loadIdentity);
+    return () => window.removeEventListener("whatsapp-identity-changed", loadIdentity);
+  }, [user]);
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-paper"><div className="h-8 w-8 animate-spin rounded-full border-2 border-navy border-t-transparent" /></div>;
@@ -129,7 +146,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button className="rounded-lg p-2 text-muted hover:bg-white lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
           <div className="hidden text-sm text-muted lg:block">Controle claro para decisões melhores.</div>
           <div className="ml-auto flex items-center gap-3">
-            <Badge tone="whatsapp" className="hidden sm:inline-flex"><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-[#2e9a61]" /> WhatsApp conectado</Badge>
+            <Link href="/integrations" className="hidden sm:block" aria-label="Abrir integração do WhatsApp">
+              <Badge tone={whatsappIdentity?.linked ? "whatsapp" : "neutral"}>
+                <MessageCircle size={12} className="mr-1.5" />
+                {whatsappIdentity?.linked ? "Número vinculado" : "Vincular WhatsApp"}
+              </Badge>
+            </Link>
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-xs font-bold text-white lg:hidden">{initials(user.full_name)}</span>
           </div>
         </header>

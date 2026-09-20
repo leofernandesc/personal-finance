@@ -4,9 +4,12 @@ import type {
   Category,
   DashboardData,
   Goal,
+  ReportData,
   SourceType,
   Transaction,
+  TransactionSort,
   TransactionType,
+  Transfer,
   User,
   WhatsAppIdentity,
 } from "./types";
@@ -63,6 +66,11 @@ export const api = {
   logout: () => request<{ message: string }>("/auth/logout", json("POST")),
   dashboard: (start?: string, end?: string) =>
     request<DashboardData>(`/dashboard${start || end ? `?${new URLSearchParams({ ...(start ? { start } : {}), ...(end ? { end } : {}) })}` : ""}`),
+  report: (month?: string, months = 6) => {
+    const search = new URLSearchParams({ months: String(months) });
+    if (month) search.set("month", month);
+    return request<ReportData>(`/reports/monthly?${search}`);
+  },
   accounts: () => request<Account[]>("/accounts"),
   createAccount: (body: { name: string; account_type: string; opening_balance: string }) =>
     request<Account>("/accounts", json("POST", body)),
@@ -73,7 +81,7 @@ export const api = {
     request<Category>("/categories", json("POST", body)),
   updateCategory: (id: string, body: Partial<{ name: string; kind: string; parent_id: string | null; is_active: boolean }>) =>
     request<Category>(`/categories/${id}`, json("PATCH", body)),
-  transactions: (params: { start?: string; end?: string; type?: TransactionType; account_id?: string; category_id?: string; source?: SourceType; search?: string } = {}) => {
+  transactions: (params: { start?: string; end?: string; type?: TransactionType; account_id?: string; category_id?: string; source?: SourceType; search?: string; sort?: TransactionSort } = {}) => {
     const search = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => value && search.set(key, value));
     return request<Transaction[]>(`/transactions${search.size ? `?${search}` : ""}`);
@@ -85,15 +93,14 @@ export const api = {
     amount: string;
     description: string;
     transaction_date?: string;
-    source?: SourceType;
     idempotency_key?: string;
   }) => request<Transaction>("/transactions", json("POST", body)),
   updateTransaction: (id: string, body: Partial<{ account_id: string; category_id: string | null; amount: string; description: string; transaction_date: string }>) =>
     request<Transaction>(`/transactions/${id}`, json("PATCH", body)),
   deleteTransaction: (id: string) => request<{ message: string }>(`/transactions/${id}`, json("DELETE")),
-  transfers: () => request<unknown[]>("/transfers"),
-  createTransfer: (body: { source_account_id: string; destination_account_id: string; amount: string; description: string; transaction_date?: string; source?: SourceType }) =>
-    request<unknown>("/transfers", json("POST", body)),
+  transfers: () => request<Transfer[]>("/transfers"),
+  createTransfer: (body: { source_account_id: string; destination_account_id: string; amount: string; description: string; transaction_date?: string; idempotency_key?: string }) =>
+    request<Transfer>("/transfers", json("POST", body)),
   budgets: (month?: string) => request<Budget[]>(`/budgets${month ? `?month=${month}` : ""}`),
   createBudget: (body: { category_id: string; month: string; limit_amount: string }) =>
     request<Budget>("/budgets", json("POST", body)),

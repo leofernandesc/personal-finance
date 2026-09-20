@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -39,5 +40,3 @@ export default function LoginPage() {
     <p className="mt-8 text-center text-sm text-muted">Ainda não tem uma conta? <Link className="font-semibold text-navy underline decoration-mint decoration-2 underline-offset-4" href="/register">Criar agora</Link></p>
   </AuthFrame>;
 }
-
-import React from "react";

@@ -57,9 +57,10 @@ export function Badge({ className, tone = "neutral", children }: { className?: s
 }
 
 export function Progress({ value, tone = "moss" }: { value: number; tone?: "moss" | "rust" | "navy" }) {
+  const clampedValue = Math.min(Math.max(value, 0), 100);
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-paper" aria-label={`${Math.round(value)}% utilizado`} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-      <div className={cn("h-full rounded-full transition-all", tone === "moss" && "bg-moss", tone === "rust" && "bg-rust", tone === "navy" && "bg-navy")} style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }} />
+    <div className="h-2 overflow-hidden rounded-full bg-paper" aria-label={`${Math.round(value)}% utilizado`} aria-valuetext={`${Math.round(value)}% utilizado`} role="progressbar" aria-valuenow={clampedValue} aria-valuemin={0} aria-valuemax={100}>
+      <div className={cn("h-full rounded-full transition-all", tone === "moss" && "bg-moss", tone === "rust" && "bg-rust", tone === "navy" && "bg-navy")} style={{ width: `${clampedValue}%` }} />
     </div>
   );
 }
@@ -69,5 +70,5 @@ export function Divider({ className }: { className?: string }) {
 }
 
 export function Spinner({ className }: { className?: string }) {
-  return <span className={cn("inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent", className)} aria-label="Carregando" />;
+  return <span className={cn("inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent", className)} aria-label="Carregando" role="status" />;
 }

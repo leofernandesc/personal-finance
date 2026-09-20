@@ -2,6 +2,7 @@ export type AccountType = "checking" | "savings" | "cash" | "investment" | "othe
 export type CategoryKind = "expense" | "income" | "both";
 export type TransactionType = "income" | "expense" | "transfer";
 export type SourceType = "web" | "whatsapp" | "import" | "automatic";
+export type TransactionSort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
 export type User = {
   id: string;
@@ -41,8 +42,20 @@ export type Transaction = {
   created_at: string;
   account_name?: string | null;
   category_name?: string | null;
+  transfer_source_account_name?: string | null;
+  transfer_destination_account_name?: string | null;
   account?: Account;
   category?: Category;
+};
+
+export type Transfer = {
+  id: string;
+  source_account_id: string;
+  destination_account_id: string;
+  amount: string;
+  description: string;
+  transaction_date: string;
+  source: SourceType;
 };
 
 export type Budget = {
@@ -71,15 +84,25 @@ export type DashboardData = {
   totals: { income: string; expense: string; savings: string };
   total_balance: string;
   accounts: Array<Pick<Account, "id" | "name" | "account_type" | "balance">>;
-  by_category: Array<{ category_id: string; category_name: string; amount: string }>;
+  by_category: Array<{ category_id: string | null; category_name: string; amount: string }>;
   flow: Array<{ date: string; income: string; expense: string }>;
   budgets: Budget[];
   recent_transactions: Transaction[];
 };
 
+export type ReportData = DashboardData & {
+  monthly_evolution: Array<{
+    month: string;
+    income: string;
+    expense: string;
+    savings: string;
+  }>;
+};
+
 export type WhatsAppIdentity = {
   linked: boolean;
   phone_e164: string | null;
+  verified: boolean;
 };
 
 export type ApiErrorShape = {

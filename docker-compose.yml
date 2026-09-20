@@ -30,6 +30,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     command: >-
       sh -c "alembic upgrade head &&
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
@@ -46,8 +52,11 @@ services:
       - frontend-node-modules:/app/node_modules
       - frontend-next:/app/.next
     depends_on:
-      - backend
-    command: npm run dev -- --hostname 0.0.0.0
+      backend:
+        condition: service_healthy
+    # The named node_modules volume survives rebuilds; npm ci prevents it from
+    # silently keeping an older Next.js after package-lock.json changes.
+    command: sh -c "npm ci && npm run dev -- --hostname 0.0.0.0"
 
 volumes:
   postgres-data:

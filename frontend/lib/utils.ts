@@ -20,6 +20,19 @@ export function numberValue(value: string | number | null | undefined) {
   return Number(value ?? 0);
 }
 
+export function normalizeMoneyInput(value: string) {
+  const raw = value.trim().replace(/R\$/gi, "").replace(/\s/g, "");
+  if (/^-?\d+$/.test(raw)) return raw;
+  if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(raw)) {
+    return raw.replace(/\./g, "").replace(",", ".");
+  }
+  if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(raw)) {
+    return raw.replace(/,/g, "");
+  }
+  if (/^-?\d+[,.]\d{1,2}$/.test(raw)) return raw.replace(",", ".");
+  return null;
+}
+
 export function todayForTimezone(timezone = "UTC", value = new Date()) {
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -63,7 +76,7 @@ export function initials(name: string) {
 }
 
 export function percent(value: string | number) {
-  return `${Math.min(100, Math.max(0, Number(value))).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+  return `${Math.max(0, Number(value)).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 }
 
 export const accountTypeLabels: Record<string, string> = {

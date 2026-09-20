@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Account } from "@/lib/types";
+import { normalizeMoneyInput } from "@/lib/utils";
 import { Button, Input, Select, Spinner } from "@/components/ui";
 
 export function AccountEditor({ account, onSaved, onCancel }: { account?: Account | null; onSaved: () => void; onCancel: () => void }) {
@@ -18,7 +19,11 @@ export function AccountEditor({ account, onSaved, onCancel }: { account?: Accoun
     try {
       if (!name.trim()) throw new Error("Dê um nome para esta conta.");
       if (account) await api.updateAccount(account.id, { name: name.trim(), account_type: accountType, is_active: status === "active" });
-      else await api.createAccount({ name: name.trim(), account_type: accountType, opening_balance: openingBalance.replace(/\./g, "").replace(",", ".") || "0.00" });
+      else {
+        const normalizedOpeningBalance = normalizeMoneyInput(openingBalance || "0");
+        if (normalizedOpeningBalance === null) throw new Error("Informe um saldo inicial válido.");
+        await api.createAccount({ name: name.trim(), account_type: accountType, opening_balance: normalizedOpeningBalance });
+      }
       onSaved();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível salvar a conta."); } finally { setSaving(false); }
   };

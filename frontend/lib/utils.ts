@@ -20,6 +20,21 @@ export function numberValue(value: string | number | null | undefined) {
   return Number(value ?? 0);
 }
 
+export function todayForTimezone(timezone = "UTC", value = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(value);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    return value.toISOString().slice(0, 10);
+  }
+}
+
 export function formatDate(value: string | Date, options?: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat("pt-BR", options ?? { day: "2-digit", month: "short" }).format(
     new Date(`${String(value).slice(0, 10)}T12:00:00`),

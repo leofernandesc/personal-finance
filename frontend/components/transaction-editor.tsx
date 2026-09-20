@@ -4,15 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Account, Category, Transaction } from "@/lib/types";
+import { todayForTimezone } from "@/lib/utils";
 import { Button, Input, Select, Spinner } from "@/components/ui";
 
-export function TransactionEditor({ accounts, categories, transaction, onSaved, onCancel }: { accounts: Account[]; categories: Category[]; transaction?: Transaction | null; onSaved: () => void; onCancel: () => void }) {
+export function TransactionEditor({ accounts, categories, transaction, timezone, onSaved, onCancel }: { accounts: Account[]; categories: Category[]; transaction?: Transaction | null; timezone?: string; onSaved: () => void; onCancel: () => void }) {
   const [type, setType] = useState<"expense" | "income">(transaction?.type === "income" ? "income" : "expense");
   const [accountId, setAccountId] = useState(transaction?.account_id || accounts[0]?.id || "");
   const [categoryId, setCategoryId] = useState(transaction?.category_id || "");
   const [amount, setAmount] = useState(transaction?.amount || "");
   const [description, setDescription] = useState(transaction?.description || "");
-  const [transactionDate, setTransactionDate] = useState(transaction?.transaction_date || new Date().toISOString().slice(0, 10));
+  const [transactionDate, setTransactionDate] = useState(transaction?.transaction_date || todayForTimezone(timezone));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const availableCategories = useMemo(() => categories.filter((category) => category.is_active && (category.kind === type || category.kind === "both")), [categories, type]);

@@ -472,6 +472,7 @@ def agent_category_summary(
 @router.get("/transactions")
 def agent_transactions(
     limit: int = 10,
+    search: str | None = None,
     principal: AgentPrincipal = Depends(get_agent_principal),
     db: Session = Depends(get_db),
 ):
@@ -484,8 +485,14 @@ def agent_transactions(
             "date": transaction.transaction_date,
             "category": transaction.category.name if transaction.category else None,
             "account": transaction.account.name if transaction.account else None,
+            "source": transaction.source,
         }
-        for transaction in list_transactions(db, principal.user, limit=max(1, min(limit, 50)))
+        for transaction in list_transactions(
+            db,
+            principal.user,
+            search=search,
+            limit=max(1, min(limit, 50)),
+        )
     ]
 
 
@@ -502,6 +509,7 @@ def agent_budget(
     principal: AgentPrincipal = Depends(get_agent_principal),
     db: Session = Depends(get_db),
 ):
+    message = _agent_message(db, principal, intent="create_budget", tool_name="create_budget")
     category = _category_by_name(db, principal.user, payload.category_name, "expense")
     month = month_start(payload.month or user_today(principal.user))
     budget = db.scalar(
@@ -521,6 +529,7 @@ def agent_budget(
             limit_amount=payload.limit_amount,
         )
         db.add(budget)
+    _complete_message(db, message)
     db.commit()
     return next(
         item for item in budget_status(db, principal.user, month) if item["id"] == budget.id
@@ -533,8 +542,10 @@ def agent_goal(
     principal: AgentPrincipal = Depends(get_agent_principal),
     db: Session = Depends(get_db),
 ):
+    message = _agent_message(db, principal, intent="create_goal", tool_name="create_goal")
     goal = Goal(user_id=principal.user.id, **payload.model_dump())
     db.add(goal)
+    _complete_message(db, message)
     db.commit()
     db.refresh(goal)
     return {

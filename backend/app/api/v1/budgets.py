@@ -9,7 +9,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models import Budget, User
 from app.schemas.finance import BudgetCreate, BudgetResponse, BudgetUpdate
-from app.services.finance import budget_status, ensure_category, month_start
+from app.services.finance import budget_status, ensure_category, month_start, user_today
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
@@ -29,7 +29,7 @@ def _status_item(db: Session, user: User, budget: Budget) -> dict:
 def list_budgets(
     month: date | None = None, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return budget_status(db, user, month or date.today())
+    return budget_status(db, user, month or user_today(user))
 
 
 @router.post("", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)

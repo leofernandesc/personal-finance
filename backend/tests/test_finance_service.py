@@ -27,6 +27,7 @@ from app.services.finance import (
     totals_for_period,
     user_today,
 )
+from app.services.seed import seed_categories
 
 
 def make_user(email: str = "ana@example.com", timezone: str = "America/Manaus") -> User:
@@ -211,3 +212,31 @@ def test_agent_message_is_idempotent_and_keeps_whatsapp_source(db):
     assert first["replayed"] is False
     assert second["replayed"] is True
     assert first["id"] == second["id"]
+
+
+def test_seeded_outros_category_accepts_ambiguous_income(db):
+    user = make_user()
+    db.add(user)
+    db.flush()
+    account = create_account(db, user, AccountCreate(name="Carteira"))
+    seed_categories(db, user)
+    db.flush()
+    principal = AgentPrincipal(
+        user=user,
+        provider="whatsapp",
+        sender_id="+5592999999999",
+        message_id="wamid-income-default-1",
+    )
+
+    result = agent_transaction(
+        AgentTransactionRequest(
+            type="income",
+            amount=Decimal("100.00"),
+            account_name=account.name,
+            transaction_date=date(2026, 9, 20),
+        ),
+        principal=principal,
+        db=db,
+    )
+
+    assert result["category"] == "Outros"

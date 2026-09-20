@@ -10,7 +10,7 @@ import { TransactionLink, TransactionList } from "@/components/transaction-list"
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, Progress } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { DashboardData } from "@/lib/types";
-import { accountTypeLabels, formatDate, money, monthLabel, numberValue, percent } from "@/lib/utils";
+import { accountTypeLabels, formatDate, money, monthLabel, numberValue, percent, todayForTimezone } from "@/lib/utils";
 
 const categoryColors = ["#2f6b58", "#183a4d", "#d98d63", "#9aa85a", "#b99b3b", "#9a6a77"];
 
@@ -26,7 +26,7 @@ export default function DashboardPage() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const today = new Date();
+  const today = todayForTimezone(user?.timezone);
   const firstName = user?.full_name?.split(" ")[0] || "por aí";
   const categoryData = useMemo(() => data?.by_category.map((item, index) => ({ ...item, amountNumber: numberValue(item.amount), color: categoryColors[index % categoryColors.length] })) ?? [], [data]);
 

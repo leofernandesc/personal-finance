@@ -28,27 +28,22 @@ DEFAULT_CATEGORIES = {
 
 
 def seed_categories(db: Session, user: User) -> None:
-    existing = {
-        name.lower()
-        for name in db.scalars(select(Category.name).where(Category.user_id == user.id))
+    roots_by_name = {
+        category.name.casefold(): category
+        for category in db.scalars(
+            select(Category).where(Category.user_id == user.id, Category.parent_id.is_(None))
+        )
     }
-    for kind, roots in DEFAULT_CATEGORIES.items():
-        for root_name, children in roots.items():
-            if root_name.lower() in existing:
-                root = db.scalar(
-                    select(Category).where(
-                        Category.user_id == user.id,
-                        Category.parent_id.is_(None),
-                        Category.name.ilike(root_name),
-                    )
-                )
-            else:
+    for kind, category_tree in DEFAULT_CATEGORIES.items():
+        for root_name, children in category_tree.items():
+            root = roots_by_name.get(root_name.casefold())
+            if not root:
                 root = Category(user_id=user.id, name=root_name, kind=kind)
                 db.add(root)
                 db.flush()
-                existing.add(root_name.lower())
-            if not root:
-                continue
+                roots_by_name[root_name.casefold()] = root
+            elif root.kind != kind and root.kind != "both":
+                root.kind = "both"
             child_names = {
                 name.lower()
                 for name in db.scalars(

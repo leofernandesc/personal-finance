@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Account, Category, Transaction } from "@/lib/types";
@@ -15,11 +15,11 @@ export function TransactionEditor({ accounts, categories, transaction, onSaved, 
   const [transactionDate, setTransactionDate] = useState(transaction?.transaction_date || new Date().toISOString().slice(0, 10));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const availableCategories = categories.filter((category) => category.is_active && (category.kind === type || category.kind === "both"));
+  const availableCategories = useMemo(() => categories.filter((category) => category.is_active && (category.kind === type || category.kind === "both")), [categories, type]);
 
   useEffect(() => {
     if (categoryId && !availableCategories.some((category) => category.id === categoryId)) setCategoryId("");
-  }, [type]);
+  }, [availableCategories, categoryId, type]);
 
   const submit = async () => {
     setSaving(true); setError(null);

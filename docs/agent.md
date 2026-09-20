@@ -59,14 +59,18 @@ Verifique o plugin antes de habilitá-lo:
 
 ```bash
 hermes plugins doctor ./agent --ci
-hermes plugins install ./agent --force
-hermes plugins enable personal-finance
+mkdir -p .hermes/plugins
+ln -sfn "$(pwd)/agent" .hermes/plugins/personal-finance
+export HERMES_ENABLE_PROJECT_PLUGINS=1
 ```
 
-O plugin pode ser validado sem uma conta WhatsApp real pelo doctor e pelos
-testes unitários. Para o canal, pareie o WhatsApp Web no fluxo de gateway do
-Hermes, habilite o toolset `personal_finance` para essa plataforma e mantenha o
-backend acessível no endereço configurado.
+Execute o Hermes a partir da raiz do monorepo para que o plugin local seja
+descoberto. Para uma instalação permanente, copie o diretório `agent/` para
+`~/.hermes/plugins/personal-finance/` e habilite-o com o CLI. O plugin pode ser
+validado sem uma conta WhatsApp real pelo doctor e pelos testes unitários. Para
+o canal, pareie o WhatsApp Web no fluxo de gateway do Hermes, habilite o toolset
+`personal_finance` para essa plataforma e mantenha o backend acessível no
+endereço configurado.
 
 ## Ollama
 

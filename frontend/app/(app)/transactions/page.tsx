@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { TransactionEditor } from "@/components/transaction-editor";
 import { EmptyState, ErrorState, LoadingState, PageHeader, SearchEmpty } from "@/components/page";
 import { TransactionSource } from "@/components/transaction-list";
-import { Badge, Button, Card, Input, Select } from "@/components/ui";
+import { Button, Card, Input, Select } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Account, Category, SourceType, Transaction, TransactionType } from "@/lib/types";
 import { formatLongDate, money } from "@/lib/utils";

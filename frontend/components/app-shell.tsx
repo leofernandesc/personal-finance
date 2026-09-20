@@ -8,7 +8,6 @@ import {
   BookOpen,
   ChevronDown,
   CircleDollarSign,
-  CreditCard,
   LayoutDashboard,
   LogOut,
   Menu,

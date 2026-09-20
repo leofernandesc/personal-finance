@@ -13,7 +13,7 @@ from app.schemas.finance import AccountCreate, TransactionCreate
 from app.services.finance import create_account, create_transaction, month_start, user_today
 from app.services.seed import seed_categories
 
-DEMO_EMAIL = "demo@personal-finance.local"
+DEMO_EMAIL = "demo@personal-finance.dev"
 
 
 def run() -> None:

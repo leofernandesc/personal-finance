@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Landmark, MoreHorizontal, Plus, WalletCards } from "lucide-react";
 import { AccountEditor } from "@/components/account-editor";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/page";
-import { Badge, Button, Card, CardDescription, CardHeader, CardTitle } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Account } from "@/lib/types";
 import { accountTypeLabels, money, numberValue } from "@/lib/utils";

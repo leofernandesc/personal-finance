@@ -153,7 +153,7 @@ PYTHONPATH=. .venv/bin/python -m app.seed_demo
 Credenciais do usuário demo:
 
 ```text
-e-mail: demo@personal-finance.local
+e-mail: demo@personal-finance.dev
 senha:  demo1234
 ```
 
@@ -191,18 +191,23 @@ curl -X POST http://localhost:8000/api/v1/integrations/whatsapp/link \
   -d '{"phone_e164":"+5592999999999"}'
 ```
 
-Instale/verifique o plugin:
+Verifique o plugin e habilite a descoberta local do monorepo:
 
 ```bash
 hermes plugins doctor ./agent --ci
-hermes plugins install ./agent --force
-hermes plugins enable personal-finance
+mkdir -p .hermes/plugins
+ln -sfn "$(pwd)/agent" .hermes/plugins/personal-finance
+export HERMES_ENABLE_PROJECT_PLUGINS=1
 ```
 
-O doctor deve confirmar o manifesto, o import e as 13 tools. No Hermes, habilite
-o toolset `personal_finance` para a plataforma WhatsApp conforme a configuração
-da sua instalação e inicie o gateway. A ponte WhatsApp/Web é responsabilidade
-do provider do canal; o domínio financeiro não conhece Baileys.
+O doctor deve confirmar o manifesto, o import e as 13 tools. Execute o Hermes a
+partir da raiz do repositório para que o plugin local seja descoberto. Para uma
+instalação permanente fora do monorepo, copie `agent/` para
+`~/.hermes/plugins/personal-finance/` e habilite `personal-finance` com o CLI.
+No Hermes, habilite o toolset `personal_finance` para a plataforma WhatsApp
+conforme a configuração da sua instalação e inicie o gateway. A ponte
+WhatsApp/Web é responsabilidade do provider do canal; o domínio financeiro não
+conhece Baileys.
 
 Para Ollama:
 

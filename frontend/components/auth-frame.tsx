@@ -19,7 +19,7 @@ export function AuthFrame({ children, mode }: { children: React.ReactNode; mode:
         </div>
         <div className="relative flex items-center gap-2 text-xs text-white/40">Feito para clareza <ArrowUpRight size={14} /></div>
       </section>
-      <section className="flex min-h-screen items-center justify-center px-5 py-10 md:px-10">
+      <section className="flex min-h-screen items-center justify-center px-5 py-10 md:px-10" aria-label={mode === "register" ? "Criar conta" : "Entrar"}>
         <div className="w-full max-w-[430px]">
           <div className="mb-8 lg:hidden"><span className="font-display text-2xl tracking-[-0.03em]">norte</span><span className="ml-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-muted">finanças pessoais</span></div>
           {children}

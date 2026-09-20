@@ -8,10 +8,15 @@ validado de integrações que exigem um processo externo.
 Executar na raiz, salvo indicação contrária:
 
 ```bash
+make check
+
 cd backend
+.venv/bin/alembic check
 .venv/bin/ruff check app tests
 .venv/bin/ruff format --check app tests
 .venv/bin/pytest -q
+.venv/bin/ruff check ../agent
+.venv/bin/ruff format --check ../agent
 
 cd ..
 PYTHONPATH=. backend/.venv/bin/pytest -q agent/tests
@@ -19,14 +24,18 @@ backend/.venv/bin/python -m compileall -q backend/app agent
 hermes plugins doctor ./agent --ci
 
 cd frontend
+npm test
+npm run lint
 npm run typecheck
 npm run build
+npm audit --omit=dev --audit-level=high
 ```
 
-O backend cobre criação de receita/despesa, transferências com duas pernas,
-saldo, orçamento, Decimal, timezone, isolamento de usuário, idempotência e
-mensagem originada pelo WhatsApp. O plugin cobre o cliente HTTP e a descoberta
-das 13 tools no Hermes.
+Na revisão de 20/09/2026, passaram 26 testes de backend, 3 testes da fronteira
+do agente e 13 testes de frontend. O backend cobre criação de receita/despesa,
+transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
+de usuário, idempotência, auditoria e fluxos HTTP. O plugin cobre o cliente HTTP,
+a recusa de contexto sem idempotência e o conjunto esperado de 13 tools.
 
 ## Execução real local — 20/09/2026
 
@@ -34,10 +43,16 @@ Além da suíte automatizada, o ambiente local foi exercitado com PostgreSQL 16
 no Docker Compose:
 
 - `docker compose config --quiet` passou;
-- PostgreSQL ficou `healthy` e aceitou migrations Alembic;
+- backend, frontend e PostgreSQL foram reconstruídos e ficaram ativos; banco e
+  API ficaram `healthy`, e o PostgreSQL aceitou as migrations Alembic;
+- Alembic confirmou `0002_harden_financial_integrity (head)`;
+- as migrations `0001 -> 0002` também foram aplicadas em um banco temporário
+  vazio e `alembic check` não encontrou drift entre ORM e schema;
 - o seed criou o usuário demo, contas, categorias, transações, orçamentos e
   meta;
-- login por cookie e `GET /api/v1/dashboard` responderam pelo container FastAPI;
+- login por cookie, `GET /api/v1/dashboard` e o relatório de seis meses
+  responderam pelo container FastAPI;
+- readiness respondeu `ready`, OpenAPI expôs a versão 0.2.0 e 33 paths;
 - `POST /integrations/whatsapp/link` vinculou um telefone de teste;
 - `create_transaction` persistiu `Gasolina` de `R$ 50,00` com
   `source=whatsapp`;
@@ -47,7 +62,13 @@ no Docker Compose:
   e patrimônio total inalterado pela transferência;
 - `get_month_summary` e `get_category_summary` retornaram os números calculados
   no backend;
-- o frontend em Compose iniciou em `:3000` e respondeu `200` com HTML.
+- tools de sucesso e erro foram persistidas separadamente em
+  `agent_tool_calls`;
+- o frontend Next.js 16 em Compose iniciou em `:3000` e respondeu `200`;
+- lint, typecheck, build de produção e `npm audit` passaram, com zero
+  vulnerabilidades reportadas nas dependências auditadas;
+- `hermes plugins doctor ./agent --ci` confirmou import, registro de 13 tools e
+  um hook.
 
 O usuário demo usado nos testes é `demo@personal-finance.dev` / `demo1234`.
 Essas credenciais são somente para desenvolvimento local.

@@ -27,7 +27,12 @@ procura uma linha ativa em `whatsapp_identities` e deriva o `User`. Um número
 sem vínculo recebe erro e não pode registrar operações.
 
 O `X-Agent-Message-Id` é a fronteira de idempotência. Nunca reutilize um ID para
-representar duas mensagens distintas.
+representar duas mensagens distintas. O cliente recusa chamadas sem remetente
+ou ID externo para não abrir um caminho sem proteção contra reentrega.
+
+O vínculo feito pela interface web é intencionalmente manual no MVP local e não
+preenche `verified_at`. Antes de qualquer uso fora de desenvolvimento, adicione
+um desafio de posse do número no provider do canal.
 
 ## Tools disponíveis
 
@@ -45,6 +50,14 @@ As tools de leitura devolvem dados calculados pela API. As tools de mutação n�
 aceitam SQL, `user_id` ou IDs de conta/categoria inventados pelo prompt. Para
 operações por nome, o backend resolve a entidade do próprio usuário e retorna
 as opções existentes em caso de ambiguidade.
+
+Para “hoje”, “ontem” e “amanhã”, a tool envia `relative_date`. A API converte o
+marcador com o timezone do usuário; o modelo não deve produzir uma data absoluta
+usando o relógio do processo Hermes.
+
+Cada execução cria uma linha em `agent_tool_calls`, inclusive consultas e
+falhas. A auditoria contém metadados técnicos e referências, não o texto da
+mensagem nem o payload financeiro.
 
 ## Configuração
 

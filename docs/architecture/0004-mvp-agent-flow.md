@@ -26,9 +26,14 @@ WhatsApp/Baileys
 ```
 
 O `message_id` é enviado como cabeçalho e também persiste em `agent_messages`.
-A transação usa uma chave única por provider, mensagem e operação. Se a mesma
+A transação usa uma chave única por usuário, provider, remetente, mensagem e
+operação. Se a mesma
 mensagem for entregue novamente, o service retorna a transação existente e o
 backend informa `replayed`, sem criar uma segunda operação.
+
+Datas relativas trafegam como marcadores (`today`, `yesterday`, `tomorrow`) e
+são resolvidas pelo backend a partir do timezone do usuário. O modelo não
+converte “ontem” usando o relógio do host.
 
 ## Fluxo de consulta
 

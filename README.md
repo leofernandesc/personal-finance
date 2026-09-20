@@ -7,12 +7,12 @@ entregar a fonte de verdade a um modelo de linguagem.
 
 ## Estado atual
 
-O domínio financeiro, a API, a autenticação local, o dashboard responsivo,
-orçamentos, metas e o plugin do Hermes já estão implementados. As validações
-automatizadas passam no repositório. O fluxo conversacional possui um adaptador
-Ollama e tools HTTP reais para o FastAPI; o pareamento do WhatsApp e a execução
-do modelo dependem da instalação local do Hermes/Ollama e, por isso, devem ser
-validados no ambiente que tiver esses processos disponíveis.
+O MVP web está implementado: autenticação local, domínio financeiro,
+transferências, dashboard responsivo, relatórios, orçamentos e metas. O fluxo
+conversacional possui um adaptador Ollama e tools HTTP reais para o FastAPI. A
+fronteira agente → API → PostgreSQL e sua idempotência foram validadas; o
+round trip com uma sessão real WhatsApp/Hermes/Ollama ainda depende desses
+processos instalados no host e não é tratado como concluído antecipadamente.
 
 O projeto não depende de serviços pagos. PostgreSQL, FastAPI, Next.js, Hermes e
 Ollama podem rodar localmente.
@@ -32,6 +32,11 @@ usuário pelo cookie da web ou pelo número WhatsApp vinculado, valida a operaç
 calcula saldos e grava no PostgreSQL. Nem Hermes nem o LLM possuem credenciais
 do banco, geram SQL ou escolhem `user_id`.
 
+Cada mensagem externa possui um envelope técnico em `agent_messages`; cada
+tool executada possui uma linha em `agent_tool_calls`. A gravação financeira e
+o sucesso da auditoria são atômicos, enquanto falhas sofrem rollback antes de
+serem registradas sem texto ou payload sensível.
+
 Transferências têm uma entidade própria e duas pernas de transação (`out` e
 `in`), portanto não são contabilizadas como receita ou despesa. Valores usam
 `NUMERIC(14,2)` no PostgreSQL e `Decimal` no Python. Datas relativas usam o
@@ -39,7 +44,7 @@ timezone do usuário.
 
 ## Stack
 
-- Frontend: Next.js App Router, TypeScript, Tailwind CSS, Recharts, React Hook
+- Frontend: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS, Recharts, React Hook
   Form e Zod.
 - Backend: Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic e psycopg.
 - Banco: PostgreSQL 16.
@@ -56,6 +61,8 @@ personal-finance/
 ├── agent/                    # plugin Hermes, Ollama e cliente HTTP do backend
 ├── database/migrations/      # migrations Alembic
 ├── docs/architecture/        # decisões arquiteturais registradas
+├── .github/workflows/ci.yml  # checks automatizados no GitHub
+├── Makefile                  # atalhos de desenvolvimento e validação
 ├── docker-compose.yml        # PostgreSQL, backend e frontend
 ├── .env.example              # configuração sem secrets
 └── README.md
@@ -87,6 +94,15 @@ cp .env.example .env
 
 Altere, no mínimo, `AGENT_SHARED_SECRET` em qualquer ambiente compartilhado.
 Para desenvolvimento local, os valores do exemplo são suficientes.
+
+Os principais comandos também estão disponíveis no Makefile:
+
+```bash
+make help
+make setup
+make up
+make check
+```
 
 ### Subir com Docker Compose
 
@@ -191,6 +207,11 @@ curl -X POST http://localhost:8000/api/v1/integrations/whatsapp/link \
   -d '{"phone_e164":"+5592999999999"}'
 ```
 
+Esse vínculo manual existe somente para desenvolvimento e permanece com
+`verified=false`; ele não comprova posse do telefone. Uma implantação fora do
+ambiente local deve adicionar um desafio de verificação antes de autorizar o
+canal.
+
 Verifique o plugin e habilite a descoberta local do monorepo:
 
 ```bash
@@ -287,14 +308,19 @@ Frontend:
 
 ```bash
 cd frontend
+npm test
+npm run lint
 npm run typecheck
 npm run build
+npm audit --omit=dev --audit-level=high
 ```
 
-O build do frontend valida as rotas App Router e o typecheck valida os contratos
-TypeScript. O lint visual adicional deve ser feito no navegador em desktop e
-mobile, conferindo teclado, foco, estados vazios, loading, erro e feedback de
-salvamento.
+Na raiz, `make check` reúne os checks do backend, agente e frontend. O workflow
+de CI repete essas verificações, aplica migrations em PostgreSQL 16 e usa
+`npm ci` para instalações reproduzíveis. O build valida as rotas App Router e o
+typecheck valida os contratos TypeScript. A revisão visual adicional deve ser
+feita no navegador em desktop e mobile, conferindo teclado, foco, estados
+vazios, loading, erro e feedback de salvamento.
 
 ## Decisões e documentação
 
@@ -306,8 +332,12 @@ salvamento.
   direção visual, responsividade e acessibilidade.
 - [`docs/architecture/0004-mvp-agent-flow.md`](docs/architecture/0004-mvp-agent-flow.md):
   fluxo comprovável de tool call, idempotência e operação local.
+- [`docs/architecture/0005-integrity-and-architecture-review.md`](docs/architecture/0005-integrity-and-architecture-review.md):
+  constraints, auditoria por tool, proveniência e decisão sobre camadas.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
+- [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos
+  priorizados.
 - [`docs/validation.md`](docs/validation.md): comandos de validação e evidências
   do que foi ou não executado neste ambiente.
 

@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f6f5f1;
+  --ink: #17212b;
+  --muted: #6d7782;
+  --line: #e4e5e1;
+  --navy: #183a4d;
+  --mint: #bde8d2;
+  --moss: #2f6b58;
+  --rust: #b95d45;
+  --butter: #f4e7a8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(47, 107, 88, 0.35);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(189, 232, 210, 0.9);
+  color: var(--navy);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted;
+  }
+
+  .page-title {
+    @apply font-display text-4xl leading-none tracking-[-0.035em] text-ink md:text-5xl;
+  }
+
+  .surface {
+    @apply rounded-card border border-line bg-white shadow-card;
+  }
+
+  .field {
+    @apply h-11 w-full rounded-xl border border-line bg-white px-3 text-sm text-ink placeholder:text-muted/70 focus:border-moss focus:outline-none focus:ring-2 focus:ring-mint;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-muted;
+  }
+}

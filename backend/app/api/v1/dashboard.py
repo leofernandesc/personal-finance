@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.api.v1.transactions import serialize_transaction
 from app.db.session import get_db
 from app.models import User
 from app.services.finance import dashboard_data, month_start, next_month, user_today
@@ -19,9 +20,13 @@ def get_dashboard(
     db: Session = Depends(get_db),
 ):
     default_start = month_start(user_today(user))
-    return dashboard_data(
+    data = dashboard_data(
         db, user, start or default_start, end or next_month(default_start) - timedelta(days=1)
     )
+    data["recent_transactions"] = [
+        serialize_transaction(item).model_dump() for item in data["recent_transactions"]
+    ]
+    return data
 
 
 @router.get("/reports/monthly")
@@ -31,4 +36,8 @@ def get_monthly_report(
     db: Session = Depends(get_db),
 ):
     selected = month_start(month or user_today(user))
-    return dashboard_data(db, user, selected, next_month(selected) - timedelta(days=1))
+    data = dashboard_data(db, user, selected, next_month(selected) - timedelta(days=1))
+    data["recent_transactions"] = [
+        serialize_transaction(item).model_dump() for item in data["recent_transactions"]
+    ]
+    return data

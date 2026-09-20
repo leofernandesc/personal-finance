@@ -15,6 +15,7 @@ coverage/
 htmlcov/
 *.log
 *.egg-info/
+*.tsbuildinfo
 dist/
 build/
 .DS_Store

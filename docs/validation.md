@@ -28,6 +28,30 @@ saldo, orçamento, Decimal, timezone, isolamento de usuário, idempotência e
 mensagem originada pelo WhatsApp. O plugin cobre o cliente HTTP e a descoberta
 das 13 tools no Hermes.
 
+## Execução real local — 20/09/2026
+
+Além da suíte automatizada, o ambiente local foi exercitado com PostgreSQL 16
+no Docker Compose:
+
+- `docker compose config --quiet` passou;
+- PostgreSQL ficou `healthy` e aceitou migrations Alembic;
+- o seed criou o usuário demo, contas, categorias, transações, orçamentos e
+  meta;
+- login por cookie e `GET /api/v1/dashboard` responderam pelo container FastAPI;
+- `POST /integrations/whatsapp/link` vinculou um telefone de teste;
+- `create_transaction` persistiu `Gasolina` de `R$ 50,00` com
+  `source=whatsapp`;
+- a mesma mensagem, com o mesmo ID externo, retornou `replayed=true` e o mesmo
+  ID sem duplicar a despesa;
+- `create_transfer` moveu `R$ 300,00` do Nubank para o Inter, com duas pernas
+  e patrimônio total inalterado pela transferência;
+- `get_month_summary` e `get_category_summary` retornaram os números calculados
+  no backend;
+- o frontend em Compose iniciou em `:3000` e respondeu `200` com HTML.
+
+O usuário demo usado nos testes é `demo@personal-finance.dev` / `demo1234`.
+Essas credenciais são somente para desenvolvimento local.
+
 ## Milestone comprovado por código
 
 O caminho a seguir está implementado e testado nas fronteiras do repositório:

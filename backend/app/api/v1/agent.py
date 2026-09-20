@@ -1,6 +1,7 @@
 import hashlib
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
@@ -15,18 +16,21 @@ from app.schemas.agent import (
     AgentGoalRequest,
     AgentInboundRequest,
     AgentTransactionRequest,
+    AgentTransactionUpdateRequest,
     AgentTransferRequest,
 )
-from app.schemas.finance import TransactionCreate, TransferCreate
+from app.schemas.finance import TransactionCreate, TransactionUpdate, TransferCreate
 from app.services.finance import (
     balance_for_account,
     budget_status,
     create_transaction,
     create_transfer,
+    delete_transaction,
     list_transactions,
     month_start,
     next_month,
     totals_for_period,
+    update_transaction,
     user_today,
 )
 
@@ -284,6 +288,79 @@ def agent_transfer(
         "transaction_date": transfer.transaction_date,
         "replayed": replayed,
     }
+
+
+@router.patch("/transactions/{transaction_id}")
+def agent_update_transaction(
+    transaction_id: UUID,
+    payload: AgentTransactionUpdateRequest,
+    principal: AgentPrincipal = Depends(get_agent_principal),
+    db: Session = Depends(get_db),
+):
+    if payload.transaction_id != transaction_id:
+        raise HTTPException(status_code=400, detail="ID da transação inconsistente")
+    transaction = db.scalar(
+        select(Transaction).where(
+            Transaction.id == payload.transaction_id,
+            Transaction.user_id == principal.user.id,
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transação não encontrada")
+    update_data = {}
+    if payload.amount is not None:
+        update_data["amount"] = payload.amount
+    if payload.description is not None:
+        update_data["description"] = payload.description
+    if payload.transaction_date is not None:
+        update_data["transaction_date"] = payload.transaction_date
+    if payload.category_name:
+        category = _category_by_name(db, principal.user, payload.category_name, transaction.type)
+        update_data["category_id"] = category.id
+    updated = update_transaction(
+        db,
+        principal.user,
+        payload.transaction_id,
+        TransactionUpdate.model_validate(update_data),
+    )
+    message = _agent_message(
+        db, principal, intent="update_transaction", tool_name="update_transaction"
+    )
+    _complete_message(db, message, transaction_id=updated.id)
+    db.commit()
+    return {
+        "id": updated.id,
+        "amount": str(updated.amount),
+        "description": updated.description,
+        "category": updated.category.name if updated.category else None,
+        "transaction_date": updated.transaction_date,
+        "source": updated.source,
+    }
+
+
+@router.delete("/transactions/{transaction_id}")
+def agent_delete_transaction(
+    transaction_id: UUID,
+    principal: AgentPrincipal = Depends(get_agent_principal),
+    db: Session = Depends(get_db),
+):
+    transaction = db.scalar(
+        select(Transaction).where(
+            Transaction.id == transaction_id,
+            Transaction.user_id == principal.user.id,
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transação não encontrada")
+    delete_transaction(db, principal.user, transaction_id)
+    message = _agent_message(
+        db, principal, intent="delete_transaction", tool_name="delete_transaction"
+    )
+    _complete_message(db, message, transaction_id=transaction_id)
+    db.commit()
+    return {"deleted": True, "transaction_id": transaction_id}
 
 
 @router.get("/accounts")

@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator
 
@@ -32,6 +33,21 @@ class AgentTransferRequest(APIModel):
     @classmethod
     def valid_amount(cls, value: Decimal) -> Decimal:
         return validate_money(value)
+
+
+class AgentTransactionUpdateRequest(APIModel):
+    transaction_id: UUID
+    amount: Decimal | None = Field(
+        default=None, gt=Decimal("0.00"), max_digits=14, decimal_places=2
+    )
+    description: str | None = Field(default=None, max_length=255)
+    category_name: str | None = Field(default=None, max_length=80)
+    transaction_date: date | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def valid_amount(cls, value: Decimal | None) -> Decimal | None:
+        return validate_money(value) if value is not None else None
 
 
 class AgentBudgetRequest(APIModel):

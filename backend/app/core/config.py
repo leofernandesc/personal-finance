@@ -1,7 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
@@ -19,7 +22,7 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5:7b"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(PROJECT_ROOT / ".env", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

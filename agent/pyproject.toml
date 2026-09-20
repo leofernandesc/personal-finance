@@ -1,0 +1,9 @@
+[project]
+name = "personal-finance-agent"
+version = "0.1.0"
+description = "Hermes, Ollama and WhatsApp boundary for Personal Finance"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

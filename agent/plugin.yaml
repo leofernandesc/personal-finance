@@ -1,0 +1,20 @@
+name: personal-finance
+version: "0.1.0"
+description: "Tools do Hermes para consultar e operar o domínio financeiro via FastAPI."
+author: "Personal Finance"
+provides_tools:
+  - create_transaction
+  - update_transaction
+  - delete_transaction
+  - get_transactions
+  - get_balance
+  - get_accounts
+  - get_categories
+  - get_month_summary
+  - get_category_summary
+  - get_budget_status
+  - create_budget
+  - create_goal
+  - create_transfer
+provides_hooks:
+  - post_tool_call

@@ -5,8 +5,11 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi import HTTPException
 
+from app.api.deps import AgentPrincipal
+from app.api.v1.agent import agent_transaction
 from app.core.security import hash_password
 from app.models import Budget, User
+from app.schemas.agent import AgentTransactionRequest
 from app.schemas.finance import (
     AccountCreate,
     CategoryCreate,
@@ -182,3 +185,29 @@ def test_user_today_uses_the_user_timezone():
     user = make_user(timezone="America/Manaus")
     expected = datetime.now(ZoneInfo("America/Manaus")).date()
     assert user_today(user) == expected
+
+
+def test_agent_message_is_idempotent_and_keeps_whatsapp_source(db):
+    user, account, _destination, food, _salary = setup_finances(db)
+    principal = AgentPrincipal(
+        user=user,
+        provider="whatsapp",
+        sender_id="+5592999999999",
+        message_id="wamid-duplicate-1",
+    )
+    payload = AgentTransactionRequest(
+        type="expense",
+        amount=Decimal("25.00"),
+        description="Almoço",
+        account_name=account.name,
+        category_name=food.name,
+        transaction_date=date(2026, 9, 20),
+    )
+
+    first = agent_transaction(payload, principal=principal, db=db)
+    second = agent_transaction(payload, principal=principal, db=db)
+
+    assert first["source"] == "whatsapp"
+    assert first["replayed"] is False
+    assert second["replayed"] is True
+    assert first["id"] == second["id"]

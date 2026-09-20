@@ -84,6 +84,18 @@ modelo é configuração (`OLLAMA_MODEL`), não regra financeira. O prompt em
 `agent/prompts/system.md` instrui o modelo a consultar tools e nunca inventar
 contas, categorias, usuários ou cálculos.
 
+Para o Hermes gateway, configure o provider local pelo wizard:
+
+```bash
+hermes model
+```
+
+Selecione **Custom endpoint**, com `http://127.0.0.1:11434/v1`, uma chave
+placeholder como `none`, o nome do modelo baixado e contexto `64000`. O Hermes
+faz as chamadas OpenAI-compatible para Ollama e usa as tools registradas pelo
+plugin; o adapter nativo em `agent/llm/ollama.py` é usado pelo runner isolado e
+permite trocar o provider sem contaminar o domínio.
+
 ## Smoke runner
 
 O runner é útil para isolar o caminho Ollama → FastAPI antes de parear o canal:

@@ -48,8 +48,9 @@ webhook e CRUD financeiro.
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a
-  interpretação real em português. O adaptador é local, mas o binário não é
-  empacotado neste repositório.
+  interpretação real em português. No Hermes, configure o endpoint local
+  `http://127.0.0.1:11434/v1` e contexto mínimo de `64000`. O adaptador é local,
+  mas o binário não é empacotado neste repositório.
 - O pareamento e a entrega efetiva pelo WhatsApp Web precisam de uma sessão
   Hermes/Baileys ativa e de um telefone previamente vinculado.
 - Docker Compose precisa de um daemon Docker acessível ao usuário para subir o

@@ -214,10 +214,23 @@ Para Ollama:
 ```bash
 ollama serve
 ollama pull qwen2.5:7b
+hermes model
 ```
 
-`agent/llm/ollama.py` usa `/api/chat` com JSON schema estruturado. Para máquinas
-sem muita memória, um modelo menor pode ser usado alterando `OLLAMA_MODEL`.
+No wizard `hermes model`, selecione **Custom endpoint** e configure:
+
+```text
+Base URL:      http://127.0.0.1:11434/v1
+API key:       none
+Model:         qwen2.5:7b (ou o modelo baixado)
+Contexto:      64000
+```
+
+O endpoint customizado é o caminho usado pelo Hermes para chamadas OpenAI-
+compatible. O `agent/llm/ollama.py` usa a API nativa `/api/chat` no smoke runner
+e mantém a mesma fronteira `LLMProvider`. Para máquinas sem muita memória, um
+modelo menor pode ser usado alterando `OLLAMA_MODEL`, desde que ele suporte
+tool-calling e o contexto configurado.
 Trocar Ollama por outro servidor exige apenas implementar o protocolo
 `LLMProvider`; as tools e o backend não mudam.
 

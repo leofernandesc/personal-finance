@@ -31,7 +31,8 @@ class AgentContext:
 def current_context() -> AgentContext:
     return AgentContext(
         provider=_session_value("HERMES_SESSION_PLATFORM", "whatsapp") or "whatsapp",
-        sender_id=_session_value("HERMES_SESSION_USER_ID") or _session_value("HERMES_SESSION_CHAT_ID"),
+        sender_id=_session_value("HERMES_SESSION_USER_ID")
+        or _session_value("HERMES_SESSION_CHAT_ID"),
         message_id=_session_value("HERMES_SESSION_MESSAGE_ID") or None,
     )
 
@@ -50,7 +51,14 @@ class BackendFinanceClient:
     ) -> str:
         ctx = context or current_context()
         if not ctx.sender_id:
-            return json.dumps({"error": "Não foi possível identificar o remetente WhatsApp."}, ensure_ascii=False)
+            return json.dumps(
+                {"error": "Não foi possível identificar o remetente WhatsApp."}, ensure_ascii=False
+            )
+        if not ctx.message_id:
+            return json.dumps(
+                {"error": "Não foi possível identificar a mensagem para garantir idempotência."},
+                ensure_ascii=False,
+            )
         headers = {
             "Content-Type": "application/json",
             "X-Agent-Token": self.settings.shared_secret,
@@ -77,4 +85,6 @@ class BackendFinanceClient:
                 detail = {"detail": body}
             return json.dumps({"error": detail}, ensure_ascii=False)
         except (URLError, TimeoutError) as exc:
-            return json.dumps({"error": f"Backend financeiro indisponível: {exc}"}, ensure_ascii=False)
+            return json.dumps(
+                {"error": f"Backend financeiro indisponível: {exc}"}, ensure_ascii=False
+            )

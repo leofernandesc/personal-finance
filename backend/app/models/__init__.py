@@ -1,6 +1,7 @@
 from app.models.domain import (
     Account,
     AgentMessage,
+    AgentToolCall,
     AuthSession,
     Budget,
     Category,
@@ -15,6 +16,7 @@ from app.models.domain import (
 __all__ = [
     "Account",
     "AgentMessage",
+    "AgentToolCall",
     "AuthSession",
     "Budget",
     "Category",

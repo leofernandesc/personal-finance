@@ -1,11 +1,13 @@
+import unicodedata
 from collections import defaultdict
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Account, Budget, Category, Transaction, Transfer, User
@@ -15,11 +17,17 @@ from app.schemas.finance import (
     CategoryCreate,
     CategoryUpdate,
     TransactionCreate,
+    TransactionSort,
     TransactionUpdate,
     TransferCreate,
 )
 
 CENT = Decimal("0.01")
+
+
+def normalized_name(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value.strip()).casefold()
+    return "".join(character for character in normalized if not unicodedata.combining(character))
 
 
 def money(value: Decimal | int | float | None) -> Decimal:
@@ -33,6 +41,18 @@ def user_today(user: User) -> date:
         return datetime.now(UTC).date()
 
 
+def resolve_agent_date(
+    user: User,
+    transaction_date: date | None,
+    relative_date: str | None,
+) -> date:
+    if transaction_date is not None:
+        return transaction_date
+    today = user_today(user)
+    offsets = {"today": 0, "yesterday": -1, "tomorrow": 1}
+    return today + timedelta(days=offsets.get(relative_date or "today", 0))
+
+
 def month_start(value: date) -> date:
     return value.replace(day=1)
 
@@ -41,6 +61,12 @@ def next_month(value: date) -> date:
     if value.month == 12:
         return date(value.year + 1, 1, 1)
     return date(value.year, value.month + 1, 1)
+
+
+def shift_month(value: date, offset: int) -> date:
+    month_index = value.year * 12 + value.month - 1 + offset
+    year, zero_based_month = divmod(month_index, 12)
+    return date(year, zero_based_month + 1, 1)
 
 
 def ensure_account(
@@ -53,14 +79,19 @@ def ensure_account(
 
 
 def ensure_category(
-    db: Session, user_id: UUID, category_id: UUID | None, *, kind: str | None = None
+    db: Session,
+    user_id: UUID,
+    category_id: UUID | None,
+    *,
+    kind: str | None = None,
+    active: bool = True,
 ) -> Category | None:
     if category_id is None:
         return None
     category = db.scalar(
         select(Category).where(Category.id == category_id, Category.user_id == user_id)
     )
-    if not category or not category.is_active:
+    if not category or (active and not category.is_active):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada"
         )
@@ -73,10 +104,13 @@ def ensure_category(
 
 
 def create_account(db: Session, user: User, payload: AccountCreate) -> Account:
-    duplicate = db.scalar(
-        select(Account).where(
-            Account.user_id == user.id, func.lower(Account.name) == payload.name.lower()
-        )
+    duplicate = next(
+        (
+            account
+            for account in db.scalars(select(Account).where(Account.user_id == user.id))
+            if normalized_name(account.name) == normalized_name(payload.name)
+        ),
+        None,
     )
     if duplicate:
         raise HTTPException(
@@ -91,13 +125,25 @@ def create_account(db: Session, user: User, payload: AccountCreate) -> Account:
 def update_account(db: Session, user: User, account_id: UUID, payload: AccountUpdate) -> Account:
     account = ensure_account(db, user.id, account_id)
     data = payload.model_dump(exclude_unset=True)
-    if "name" in data:
-        duplicate = db.scalar(
-            select(Account).where(
-                Account.user_id == user.id,
-                Account.id != account_id,
-                func.lower(Account.name) == data["name"].lower(),
+    if data.get("is_active") is False and account.is_active:
+        if balance_for_account(db, account) != money(0):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Transfira ou ajuste o saldo antes de desativar a conta",
             )
+    if "name" in data:
+        duplicate = next(
+            (
+                candidate
+                for candidate in db.scalars(
+                    select(Account).where(
+                        Account.user_id == user.id,
+                        Account.id != account_id,
+                    )
+                )
+                if normalized_name(candidate.name) == normalized_name(data["name"])
+            ),
+            None,
         )
         if duplicate:
             raise HTTPException(
@@ -117,12 +163,23 @@ def create_category(db: Session, user: User, payload: CategoryCreate) -> Categor
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Apenas dois níveis de categoria são permitidos",
             )
-    duplicate = db.scalar(
-        select(Category).where(
-            Category.user_id == user.id,
-            Category.parent_id == payload.parent_id,
-            func.lower(Category.name) == payload.name.lower(),
-        )
+        if parent and parent.kind != "both" and parent.kind != payload.kind:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="A subcategoria deve ter a mesma natureza da categoria principal",
+            )
+    duplicate = next(
+        (
+            category
+            for category in db.scalars(
+                select(Category).where(
+                    Category.user_id == user.id,
+                    Category.parent_id == payload.parent_id,
+                )
+            )
+            if normalized_name(category.name) == normalized_name(payload.name)
+        ),
+        None,
     )
     if duplicate:
         raise HTTPException(
@@ -137,22 +194,85 @@ def create_category(db: Session, user: User, payload: CategoryCreate) -> Categor
 def update_category(
     db: Session, user: User, category_id: UUID, payload: CategoryUpdate
 ) -> Category:
-    category = ensure_category(db, user.id, category_id)
+    category = ensure_category(db, user.id, category_id, active=False)
     data = payload.model_dump(exclude_unset=True)
     if data.get("parent_id") == category_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Categoria não pode ser pai de si mesma",
         )
-    if data.get("parent_id"):
-        parent = ensure_category(db, user.id, data["parent_id"])
+    effective_parent_id = data.get("parent_id", category.parent_id)
+    effective_kind = data.get("kind", category.kind)
+    if effective_parent_id:
+        parent = ensure_category(db, user.id, effective_parent_id)
         if parent and (parent.id == category_id or parent.parent_id):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Apenas dois níveis de categoria são permitidos",
             )
+        if db.scalar(select(Category.id).where(Category.parent_id == category.id)):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Uma categoria com subcategorias não pode se tornar subcategoria",
+            )
+        if parent and parent.kind != "both" and parent.kind != effective_kind:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="A subcategoria deve ter a mesma natureza da categoria principal",
+            )
+    if "name" in data:
+        duplicate = next(
+            (
+                candidate
+                for candidate in db.scalars(
+                    select(Category).where(
+                        Category.user_id == user.id,
+                        Category.parent_id == effective_parent_id,
+                        Category.id != category_id,
+                    )
+                )
+                if normalized_name(candidate.name) == normalized_name(data["name"])
+            ),
+            None,
+        )
+        if duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe uma categoria com esse nome",
+            )
+    if "kind" in data:
+        incompatible_transaction = None
+        incompatible_child = None
+        if effective_kind != "both":
+            incompatible_transaction = db.scalar(
+                select(Transaction.id).where(
+                    Transaction.category_id == category.id,
+                    Transaction.deleted_at.is_(None),
+                    Transaction.type != effective_kind,
+                )
+            )
+            if category.parent_id is None:
+                incompatible_child = db.scalar(
+                    select(Category.id).where(
+                        Category.parent_id == category.id,
+                        Category.kind != effective_kind,
+                    )
+                )
+        if incompatible_transaction or incompatible_child:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "A natureza não pode ser alterada enquanto houver movimentos "
+                    "ou subcategorias incompatíveis"
+                ),
+            )
     for key, value in data.items():
         setattr(category, key, value)
+    if data.get("is_active") is False and category.parent_id is None:
+        for child in db.scalars(
+            select(Category).where(Category.user_id == user.id, Category.parent_id == category.id)
+        ):
+            child.is_active = False
     db.flush()
     return category
 
@@ -193,8 +313,24 @@ def create_transaction(
         source=forced_source or payload.source,
         idempotency_key=payload.idempotency_key,
     )
-    db.add(transaction)
-    db.flush()
+    if payload.idempotency_key:
+        try:
+            with db.begin_nested():
+                db.add(transaction)
+                db.flush()
+        except IntegrityError:
+            previous = db.scalar(
+                select(Transaction).where(
+                    Transaction.user_id == user.id,
+                    Transaction.idempotency_key == payload.idempotency_key,
+                )
+            )
+            if previous:
+                return previous
+            raise
+    else:
+        db.add(transaction)
+        db.flush()
     return transaction
 
 
@@ -227,42 +363,64 @@ def create_transfer(
         source=forced_source or payload.source,
         idempotency_key=payload.idempotency_key,
     )
-    db.add(transfer)
-    db.flush()
-    db.add_all(
-        [
-            Transaction(
-                user_id=user.id,
-                account_id=source.id,
-                transfer_id=transfer.id,
-                type="transfer",
-                transfer_leg="out",
-                amount=money(payload.amount),
-                description=payload.description,
-                transaction_date=transfer.transaction_date,
-                source=transfer.source,
-            ),
-            Transaction(
-                user_id=user.id,
-                account_id=destination.id,
-                transfer_id=transfer.id,
-                type="transfer",
-                transfer_leg="in",
-                amount=money(payload.amount),
-                description=payload.description,
-                transaction_date=transfer.transaction_date,
-                source=transfer.source,
-            ),
-        ]
-    )
-    db.flush()
+    legs = [
+        Transaction(
+            user_id=user.id,
+            account_id=source.id,
+            transfer=transfer,
+            type="transfer",
+            transfer_leg="out",
+            amount=money(payload.amount),
+            description=payload.description,
+            transaction_date=transfer.transaction_date,
+            source=transfer.source,
+        ),
+        Transaction(
+            user_id=user.id,
+            account_id=destination.id,
+            transfer=transfer,
+            type="transfer",
+            transfer_leg="in",
+            amount=money(payload.amount),
+            description=payload.description,
+            transaction_date=transfer.transaction_date,
+            source=transfer.source,
+        ),
+    ]
+    if payload.idempotency_key:
+        try:
+            with db.begin_nested():
+                db.add(transfer)
+                db.flush()
+                db.add_all(legs)
+                db.flush()
+        except IntegrityError:
+            previous = db.scalar(
+                select(Transfer).where(
+                    Transfer.user_id == user.id,
+                    Transfer.idempotency_key == payload.idempotency_key,
+                )
+            )
+            if previous:
+                return previous
+            raise
+    else:
+        db.add(transfer)
+        db.flush()
+        db.add_all(legs)
+        db.flush()
     return transfer
 
 
 def transaction_query(user_id: UUID) -> Select:
     return (
         select(Transaction)
-        .options(selectinload(Transaction.account), selectinload(Transaction.category))
+        .options(
+            selectinload(Transaction.account),
+            selectinload(Transaction.category),
+            selectinload(Transaction.transfer).selectinload(Transfer.source_account),
+            selectinload(Transaction.transfer).selectinload(Transfer.destination_account),
+        )
         .where(Transaction.user_id == user_id, Transaction.deleted_at.is_(None))
     )
 
@@ -278,6 +436,7 @@ def list_transactions(
     category_id: UUID | None = None,
     source: str | None = None,
     search: str | None = None,
+    sort: TransactionSort = "date_desc",
     limit: int = 100,
 ) -> list[Transaction]:
     query = transaction_query(user.id)
@@ -289,19 +448,21 @@ def list_transactions(
         query = query.where(Transaction.type == transaction_type)
     if account_id:
         query = query.where(Transaction.account_id == account_id)
+    else:
+        query = query.where(or_(Transaction.type != "transfer", Transaction.transfer_leg == "out"))
     if category_id:
         query = query.where(Transaction.category_id == category_id)
     if source:
         query = query.where(Transaction.source == source)
     if search:
         query = query.where(Transaction.description.ilike(f"%{search}%"))
-    return list(
-        db.scalars(
-            query.order_by(
-                Transaction.transaction_date.desc(), Transaction.created_at.desc()
-            ).limit(limit)
-        )
-    )
+    ordering = {
+        "date_desc": (Transaction.transaction_date.desc(), Transaction.created_at.desc()),
+        "date_asc": (Transaction.transaction_date.asc(), Transaction.created_at.asc()),
+        "amount_desc": (Transaction.amount.desc(), Transaction.transaction_date.desc()),
+        "amount_asc": (Transaction.amount.asc(), Transaction.transaction_date.desc()),
+    }[sort]
+    return list(db.scalars(query.order_by(*ordering).limit(limit)))
 
 
 def update_transaction(
@@ -337,8 +498,19 @@ def delete_transaction(db: Session, user: User, transaction_id: UUID) -> None:
         )
     now = datetime.now(UTC)
     if transaction.transfer_id:
+        transfer = db.scalar(
+            select(Transfer).where(
+                Transfer.id == transaction.transfer_id,
+                Transfer.user_id == user.id,
+            )
+        )
+        if transfer:
+            transfer.deleted_at = now
         for leg in db.scalars(
-            select(Transaction).where(Transaction.transfer_id == transaction.transfer_id)
+            select(Transaction).where(
+                Transaction.transfer_id == transaction.transfer_id,
+                Transaction.user_id == user.id,
+            )
         ):
             leg.deleted_at = now
     else:
@@ -383,6 +555,24 @@ def totals_for_period(
     return totals.get("income", money(0)), totals.get("expense", money(0))
 
 
+def monthly_evolution(db: Session, user: User, selected_month: date, months: int) -> list[dict]:
+    selected_month = month_start(selected_month)
+    result = []
+    for offset in range(-(months - 1), 1):
+        start = shift_month(selected_month, offset)
+        end = next_month(start) - timedelta(days=1)
+        income, expense = totals_for_period(db, user.id, start, end)
+        result.append(
+            {
+                "month": start,
+                "income": income,
+                "expense": expense,
+                "savings": money(income - expense),
+            }
+        )
+    return result
+
+
 def budget_status(db: Session, user: User, month: date) -> list[dict]:
     month = month_start(month)
     end = next_month(month)
@@ -406,10 +596,19 @@ def budget_status(db: Session, user: User, month: date) -> list[dict]:
         .group_by(Transaction.category_id)
     )
     spent = {category_id: money(total) for category_id, total in spent_rows}
+    children: dict[UUID, list[UUID]] = defaultdict(list)
+    for category_id, parent_id in db.execute(
+        select(Category.id, Category.parent_id).where(Category.user_id == user.id)
+    ):
+        if parent_id:
+            children[parent_id].append(category_id)
     result = []
     for budget in budgets:
         limit = money(budget.limit_amount)
-        used = spent.get(budget.category_id, money(0))
+        category_ids = [budget.category_id, *children.get(budget.category_id, [])]
+        used = money(
+            sum((spent.get(category_id, money(0)) for category_id in category_ids), money(0))
+        )
         remaining = money(limit - used)
         result.append(
             {
@@ -446,7 +645,7 @@ def dashboard_data(db: Session, user: User, start: date, end: date) -> dict:
         for a in accounts
     ]
     category_rows = db.execute(
-        select(Category.id, Category.name, func.sum(Transaction.amount))
+        select(Category.id, Category.parent_id, Category.name, func.sum(Transaction.amount))
         .join(Transaction, Transaction.category_id == Category.id)
         .where(
             Transaction.user_id == user.id,
@@ -455,12 +654,44 @@ def dashboard_data(db: Session, user: User, start: date, end: date) -> dict:
             Transaction.transaction_date <= end,
             Transaction.deleted_at.is_(None),
         )
-        .group_by(Category.id, Category.name)
+        .group_by(Category.id, Category.parent_id, Category.name)
         .order_by(func.sum(Transaction.amount).desc())
     )
+    category_lookup = {
+        category.id: category
+        for category in db.scalars(select(Category).where(Category.user_id == user.id))
+    }
+    category_totals: dict[UUID | None, Decimal] = defaultdict(lambda: money(0))
+    category_names: dict[UUID | None, str] = {}
+    for category_id, parent_id, name, total in category_rows:
+        root = category_lookup.get(parent_id) if parent_id else None
+        aggregate_id = root.id if root else category_id
+        category_names[aggregate_id] = root.name if root else name
+        category_totals[aggregate_id] += money(total)
+    uncategorized_total = money(
+        db.scalar(
+            select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+                Transaction.user_id == user.id,
+                Transaction.type == "expense",
+                Transaction.category_id.is_(None),
+                Transaction.transaction_date >= start,
+                Transaction.transaction_date <= end,
+                Transaction.deleted_at.is_(None),
+            )
+        )
+    )
+    if uncategorized_total:
+        category_names[None] = "Sem categoria"
+        category_totals[None] = uncategorized_total
     by_category = [
-        {"category_id": cid, "category_name": name, "amount": money(total)}
-        for cid, name, total in category_rows
+        {
+            "category_id": category_id,
+            "category_name": category_names[category_id],
+            "amount": money(total),
+        }
+        for category_id, total in sorted(
+            category_totals.items(), key=lambda item: item[1], reverse=True
+        )
     ]
     flow_rows = db.execute(
         select(Transaction.transaction_date, Transaction.type, func.sum(Transaction.amount))

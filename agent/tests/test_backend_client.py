@@ -17,7 +17,9 @@ class FakeResponse:
 
 
 def test_backend_client_sends_identity_and_message_headers():
-    settings = AgentSettings(api_base_url="http://api.test/integrations/agent", shared_secret="secret")
+    settings = AgentSettings(
+        api_base_url="http://api.test/integrations/agent", shared_secret="secret"
+    )
     client = BackendFinanceClient(settings)
     context = AgentContext(provider="whatsapp", sender_id="+5592999999999", message_id="wamid-1")
 
@@ -30,3 +32,31 @@ def test_backend_client_sends_identity_and_message_headers():
     assert request.get_header("X-agent-token") == "secret"
     assert request.get_header("X-agent-sender-id") == "+5592999999999"
     assert request.get_header("X-agent-message-id") == "wamid-1"
+
+
+def test_backend_client_refuses_unidentified_or_non_idempotent_calls():
+    settings = AgentSettings(
+        api_base_url="http://api.test/integrations/agent",
+        shared_secret="secret",
+    )
+    client = BackendFinanceClient(settings)
+
+    with patch("agent.backend_client.urlopen") as urlopen:
+        missing_sender = client.call(
+            "GET",
+            "balance",
+            context=AgentContext(provider="whatsapp", sender_id="", message_id="wamid-1"),
+        )
+        missing_message = client.call(
+            "GET",
+            "balance",
+            context=AgentContext(
+                provider="whatsapp",
+                sender_id="+5592999999999",
+                message_id=None,
+            ),
+        )
+
+    assert "remetente" in json.loads(missing_sender)["error"]
+    assert "idempotência" in json.loads(missing_message)["error"]
+    urlopen.assert_not_called()

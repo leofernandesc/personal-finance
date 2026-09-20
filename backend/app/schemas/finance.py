@@ -11,23 +11,41 @@ AccountType = Literal["checking", "savings", "cash", "investment", "other"]
 CategoryKind = Literal["expense", "income", "both"]
 TransactionType = Literal["income", "expense", "transfer"]
 SourceType = Literal["web", "whatsapp", "import", "automatic"]
+TransactionSort = Literal["date_desc", "date_asc", "amount_desc", "amount_asc"]
+
+
+def clean_name(value: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError("Informe um nome")
+    return cleaned
 
 
 class AccountCreate(APIModel):
     name: str = Field(min_length=1, max_length=80)
     account_type: AccountType = "checking"
-    opening_balance: Decimal = Decimal("0.00")
+    opening_balance: Decimal = Field(default=Decimal("0.00"), max_digits=14, decimal_places=2)
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str) -> str:
+        return clean_name(value)
 
     @field_validator("opening_balance")
     @classmethod
     def valid_opening_balance(cls, value: Decimal) -> Decimal:
-        return validate_money(value) if value > 0 else value.quantize(Decimal("0.01"))
+        return validate_money(value)
 
 
 class AccountUpdate(APIModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     account_type: AccountType | None = None
     is_active: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str | None) -> str | None:
+        return clean_name(value) if value is not None else None
 
 
 class AccountResponse(APIModel):
@@ -44,12 +62,22 @@ class CategoryCreate(APIModel):
     kind: CategoryKind = "expense"
     parent_id: UUID | None = None
 
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str) -> str:
+        return clean_name(value)
+
 
 class CategoryUpdate(APIModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     kind: CategoryKind | None = None
     parent_id: UUID | None = None
     is_active: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str | None) -> str | None:
+        return clean_name(value) if value is not None else None
 
 
 class CategoryResponse(APIModel):
@@ -111,6 +139,8 @@ class TransactionResponse(APIModel):
     created_at: datetime
     account_name: str | None = None
     category_name: str | None = None
+    transfer_source_account_name: str | None = None
+    transfer_destination_account_name: str | None = None
 
 
 class TransferCreate(APIModel):
@@ -190,6 +220,11 @@ class GoalCreate(APIModel):
     deadline: date | None = None
     status: Literal["active", "completed", "archived"] = "active"
 
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str) -> str:
+        return clean_name(value)
+
     @field_validator("target_amount", "current_amount")
     @classmethod
     def valid_goal_money(cls, value: Decimal) -> Decimal:
@@ -206,6 +241,11 @@ class GoalUpdate(APIModel):
     )
     deadline: date | None = None
     status: Literal["active", "completed", "archived"] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str | None) -> str | None:
+        return clean_name(value) if value is not None else None
 
     @field_validator("target_amount", "current_amount")
     @classmethod

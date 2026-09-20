@@ -39,6 +39,6 @@ def normalize_phone(value: str) -> str:
     raw = re.sub(r"^(whatsapp:|waid:)", "", raw, flags=re.IGNORECASE)
     raw = raw.split("@", 1)[0]
     digits = re.sub(r"\D", "", raw)
-    if not digits:
+    if not 8 <= len(digits) <= 15:
         return ""
     return f"+{digits}"

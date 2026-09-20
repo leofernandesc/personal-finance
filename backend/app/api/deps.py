@@ -50,7 +50,7 @@ class AgentPrincipal:
     user: User
     provider: str
     sender_id: str
-    message_id: str | None
+    message_id: str
 
 
 def get_agent_principal(
@@ -63,6 +63,13 @@ def get_agent_principal(
     if not agent_token or not secure_equals(agent_token, settings.agent_shared_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Agente não autorizado"
+        )
+    provider = provider.strip().lower()
+    message_id = (message_id or "").strip()
+    if not message_id or len(message_id) > 255:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Identificador externo da mensagem ausente ou inválido",
         )
     normalized = normalize_phone(sender_id or "")
     if provider != "whatsapp" or not normalized:

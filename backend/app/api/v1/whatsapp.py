@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,7 +19,11 @@ def whatsapp_identity(user: User = Depends(get_current_user), db: Session = Depe
             WhatsAppIdentity.is_active.is_(True),
         )
     )
-    return {"linked": identity is not None, "phone_e164": identity.phone_e164 if identity else None}
+    return {
+        "linked": identity is not None,
+        "phone_e164": identity.phone_e164 if identity else None,
+        "verified": bool(identity and identity.verified_at),
+    }
 
 
 @router.post("/link", status_code=status.HTTP_201_CREATED)
@@ -38,18 +40,25 @@ def link_whatsapp(
         raise HTTPException(status_code=409, detail="Esse número já está vinculado a outro usuário")
     if identity:
         identity.is_active = True
-        identity.verified_at = datetime.now(UTC)
     else:
         identity = WhatsAppIdentity(
             user_id=user.id,
             phone_e164=phone_e164,
-            verified_at=datetime.now(UTC),
+            verified_at=None,
             is_active=True,
         )
         db.add(identity)
+    for previous in db.scalars(
+        select(WhatsAppIdentity).where(
+            WhatsAppIdentity.user_id == user.id,
+            WhatsAppIdentity.phone_e164 != phone_e164,
+            WhatsAppIdentity.is_active.is_(True),
+        )
+    ):
+        previous.is_active = False
     db.commit()
     db.refresh(identity)
-    return {"linked": True, "phone_e164": identity.phone_e164}
+    return {"linked": True, "phone_e164": identity.phone_e164, "verified": False}
 
 
 @router.delete("/link")

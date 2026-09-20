@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -25,9 +26,13 @@ def utc_now() -> datetime:
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("email"),
+        Index("ix_users_email", "email"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(320))
     full_name: Mapped[str] = mapped_column(String(120), default="")
     password_hash: Mapped[str] = mapped_column(String(255))
     timezone: Mapped[str] = mapped_column(String(64), default="America/Manaus")
@@ -52,10 +57,14 @@ class User(Base):
 
 class AuthSession(Base):
     __tablename__ = "auth_sessions"
+    __table_args__ = (
+        UniqueConstraint("token_hash"),
+        Index("ix_auth_sessions_token_hash", "token_hash"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -65,7 +74,13 @@ class AuthSession(Base):
 
 class Account(Base):
     __tablename__ = "accounts"
-    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_accounts_user_name"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_accounts_user_name"),
+        CheckConstraint(
+            "account_type IN ('checking', 'savings', 'cash', 'investment', 'other')",
+            name="ck_accounts_type",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -84,7 +99,10 @@ class Account(Base):
 
 class Category(Base):
     __tablename__ = "categories"
-    __table_args__ = (Index("ix_categories_user_active", "user_id", "is_active"),)
+    __table_args__ = (
+        Index("ix_categories_user_active", "user_id", "is_active"),
+        CheckConstraint("kind IN ('expense', 'income', 'both')", name="ck_categories_kind"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -104,6 +122,18 @@ class Category(Base):
 
 class Transfer(Base):
     __tablename__ = "transfers"
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_transfers_user_idempotency"),
+        CheckConstraint("amount > 0", name="ck_transfers_positive_amount"),
+        CheckConstraint(
+            "source_account_id <> destination_account_id",
+            name="ck_transfers_distinct_accounts",
+        ),
+        CheckConstraint(
+            "source IN ('web', 'whatsapp', 'import', 'automatic')",
+            name="ck_transfers_source",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -113,12 +143,15 @@ class Transfer(Base):
     description: Mapped[str] = mapped_column(String(255), default="Transferência")
     transaction_date: Mapped[date] = mapped_column(Date)
     source: Mapped[str] = mapped_column(String(20), default="web")
-    idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="transfer", cascade="all, delete-orphan"
     )
+    source_account: Mapped[Account] = relationship(foreign_keys=[source_account_id])
+    destination_account: Mapped[Account] = relationship(foreign_keys=[destination_account_id])
 
 
 class Transaction(Base):
@@ -126,6 +159,18 @@ class Transaction(Base):
     __table_args__ = (
         Index("ix_transactions_user_date", "user_id", "transaction_date"),
         Index("ix_transactions_user_type", "user_id", "type"),
+        UniqueConstraint("user_id", "idempotency_key", name="uq_transactions_user_idempotency"),
+        CheckConstraint("amount > 0", name="ck_transactions_positive_amount"),
+        CheckConstraint(
+            "source IN ('web', 'whatsapp', 'import', 'automatic')",
+            name="ck_transactions_source",
+        ),
+        CheckConstraint(
+            "(type = 'transfer' AND transfer_id IS NOT NULL "
+            "AND transfer_leg IN ('in', 'out') AND category_id IS NULL) OR "
+            "(type IN ('income', 'expense') AND transfer_id IS NULL AND transfer_leg IS NULL)",
+            name="ck_transactions_shape",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -143,7 +188,7 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     transaction_date: Mapped[date] = mapped_column(Date)
     source: Mapped[str] = mapped_column(String(20), default="web")
-    idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -160,6 +205,7 @@ class Budget(Base):
     __tablename__ = "budgets"
     __table_args__ = (
         UniqueConstraint("user_id", "category_id", "month", name="uq_budgets_user_category_month"),
+        CheckConstraint("limit_amount > 0", name="ck_budgets_positive_limit"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -178,6 +224,11 @@ class Budget(Base):
 
 class Goal(Base):
     __tablename__ = "goals"
+    __table_args__ = (
+        CheckConstraint("target_amount > 0", name="ck_goals_positive_target"),
+        CheckConstraint("current_amount >= 0", name="ck_goals_nonnegative_current"),
+        CheckConstraint("status IN ('active', 'completed', 'archived')", name="ck_goals_status"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -196,10 +247,14 @@ class Goal(Base):
 
 class WhatsAppIdentity(Base):
     __tablename__ = "whatsapp_identities"
+    __table_args__ = (
+        UniqueConstraint("phone_e164"),
+        Index("ix_whatsapp_identities_phone_e164", "phone_e164"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    phone_e164: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    phone_e164: Mapped[str] = mapped_column(String(32))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -209,7 +264,14 @@ class AgentMessage(Base):
     __tablename__ = "agent_messages"
     __table_args__ = (
         UniqueConstraint(
-            "provider", "external_message_id", name="uq_agent_messages_provider_external"
+            "provider",
+            "sender_id",
+            "external_message_id",
+            name="uq_agent_messages_provider_sender_external",
+        ),
+        CheckConstraint(
+            "status IN ('received', 'processing', 'success', 'error')",
+            name="ck_agent_messages_status",
         ),
     )
 
@@ -233,6 +295,42 @@ class AgentMessage(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    tool_calls: Mapped[list["AgentToolCall"]] = relationship(
+        back_populates="message", cascade="all, delete-orphan"
+    )
+
+
+class AgentToolCall(Base):
+    __tablename__ = "agent_tool_calls"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('processing', 'success', 'error')", name="ck_agent_tool_calls_status"
+        ),
+        Index("ix_agent_tool_calls_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    agent_message_id: Mapped[UUID] = mapped_column(
+        ForeignKey("agent_messages.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    intent: Mapped[str] = mapped_column(String(80))
+    tool_name: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(20), default="processing")
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    transaction_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True
+    )
+    transfer_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("transfers.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    message: Mapped[AgentMessage] = relationship(back_populates="tool_calls")
 
 
 class PendingAgentAction(Base):

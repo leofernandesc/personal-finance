@@ -1,6 +1,6 @@
 [project]
 name = "personal-finance-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hermes, Ollama and WhatsApp boundary for Personal Finance"
 requires-python = ">=3.11"
 

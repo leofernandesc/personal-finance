@@ -15,6 +15,11 @@ class OllamaProvider:
     base_url: str = "http://127.0.0.1:11434"
     model: str = "qwen2.5:7b"
     timeout_seconds: float = 60.0
+    temperature: float = 0.0
+    seed: int = 7
+
+    def _options(self) -> dict[str, float | int]:
+        return {"temperature": self.temperature, "seed": self.seed}
 
     def _post(self, payload: dict) -> dict:
         request = Request(
@@ -34,7 +39,12 @@ class OllamaProvider:
         return [{"role": message.role, "content": message.content} for message in messages]
 
     def complete(self, messages: list[LLMMessage], *, tools: list[dict] | None = None) -> str:
-        payload = {"model": self.model, "messages": self._messages(messages), "stream": False}
+        payload = {
+            "model": self.model,
+            "messages": self._messages(messages),
+            "options": self._options(),
+            "stream": False,
+        }
         if tools:
             payload["tools"] = tools
         response = self._post(payload)
@@ -51,6 +61,7 @@ class OllamaProvider:
                 "model": self.model,
                 "messages": self._messages(messages),
                 "format": json_schema,
+                "options": self._options(),
                 "stream": False,
             }
         )

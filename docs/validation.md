@@ -90,6 +90,30 @@ O teste de serviço comprova que `source` permanece `whatsapp` e que a mesma
 mensagem é idempotente. A geração OpenAPI também inclui as rotas de agente,
 webhook e CRUD financeiro.
 
+## Ciclo 1 — smoke real com Ollama local
+
+Em 20/09/2026, o caminho local foi exercitado sem iniciar o gateway Hermes ou
+parear o WhatsApp:
+
+- Ollama foi executado no container separado `personal-finance-ollama`, na porta
+  `11434`, com o modelo `qwen2.5:3b` em volume nomeado;
+- o runner estruturou “Gastei R$ 25 com almoço hoje pelo Nubank.” como
+  `create_transaction`, `expense`, `25`, `Alimentação`, `Nubank` e `today`;
+- a API persistiu a despesa com `source=whatsapp` e data `2026-09-20`;
+- a repetição com o mesmo `X-Agent-Message-Id` retornou `replayed=true` e o
+  mesmo ID, sem criar uma segunda transação;
+- “Quanto gastei com alimentação este mês?” chamou `get_category_summary` e
+  retornou `R$ 102,50` calculados pelo backend;
+- “Quanto gastei com transporte este mês?” chamou `get_category_summary` e
+  retornou `R$ 78,00` calculados pelo backend;
+- uma mensagem sem conta, em um usuário com múltiplas contas, foi recusada com
+  `ACCOUNT_REQUIRED` sem persistência;
+- o runner foi endurecido com temperatura/seed fixos, validação semântica e
+  rejeição de intenções incompletas antes do HTTP.
+
+Esse resultado comprova o Ciclo 1, mas não comprova entrega por WhatsApp real.
+O Ciclo 2 continua dependente do gateway Hermes/Baileys e do pareamento manual.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

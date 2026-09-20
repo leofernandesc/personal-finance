@@ -16,8 +16,8 @@ def _session_value(name: str, default: str = "") -> str:
         value = get_session_env(name, "")
         if value:
             return str(value)
-    except Exception:
-        pass
+    except (ImportError, AttributeError):
+        return os.getenv(name, default)
     return os.getenv(name, default)
 
 
@@ -52,7 +52,8 @@ class BackendFinanceClient:
         ctx = context or current_context()
         if not ctx.sender_id:
             return json.dumps(
-                {"error": "Não foi possível identificar o remetente WhatsApp."}, ensure_ascii=False
+                {"error": "Não foi possível identificar o remetente WhatsApp."},
+                ensure_ascii=False,
             )
         if not ctx.message_id:
             return json.dumps(

@@ -89,8 +89,12 @@ endereço configurado.
 
 ```bash
 ollama serve
-ollama pull qwen2.5:7b
+ollama pull qwen2.5:3b
 ```
+
+Em máquinas com mais memória, `qwen2.5:7b` pode ser selecionado apenas
+alterando `OLLAMA_MODEL`. No ambiente local validado, `qwen2.5:3b` foi usado
+para manter o consumo compatível com o host.
 
 O adaptador chama `POST /api/chat` e solicita JSON conforme schema. A escolha do
 modelo é configuração (`OLLAMA_MODEL`), não regra financeira. O prompt em

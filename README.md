@@ -8,11 +8,11 @@ entregar a fonte de verdade a um modelo de linguagem.
 ## Estado atual
 
 O MVP web está implementado: autenticação local, domínio financeiro,
-transferências, dashboard responsivo, relatórios, orçamentos e metas. O fluxo
-conversacional possui um adaptador Ollama e tools HTTP reais para o FastAPI. A
-fronteira agente → API → PostgreSQL e sua idempotência foram validadas; o
-round trip com uma sessão real WhatsApp/Hermes/Ollama ainda depende desses
-processos instalados no host e não é tratado como concluído antecipadamente.
+transferências, dashboard responsivo, relatórios, orçamentos e metas. O Ciclo 1
+conversacional também foi validado localmente com Ollama, runner, FastAPI e
+PostgreSQL, incluindo idempotência e consultas reais. O round trip com uma
+sessão WhatsApp/Hermes/Baileys ainda não foi iniciado e não é tratado como
+concluído antecipadamente.
 
 O projeto não depende de serviços pagos. PostgreSQL, FastAPI, Next.js, Hermes e
 Ollama podem rodar localmente.
@@ -80,8 +80,10 @@ Para o MVP web:
 Para o fluxo conversacional:
 
 - Hermes instalado localmente;
-- Ollama instalado localmente;
-- um modelo que responda a saída estruturada, por exemplo `qwen2.5:7b`;
+- Ollama instalado localmente ou executado no container separado descrito em
+  [`docs/architecture/0006-local-ollama-runtime.md`](docs/architecture/0006-local-ollama-runtime.md);
+- um modelo que responda a saída estruturada, por exemplo `qwen2.5:3b` ou
+  `qwen2.5:7b` em máquinas com mais memória;
 - um ambiente de teste com WhatsApp Web/Baileys pareado.
 
 ## Configuração inicial
@@ -196,6 +198,34 @@ O plugin vive em `agent/`. Ele registra 13 tools no toolset
 - `X-Agent-Provider` para identificar o canal;
 - `X-Agent-Sender-Id` para resolver o telefone;
 - `X-Agent-Message-Id` para idempotência.
+
+Para validar somente o Ciclo 1 em uma máquina com poucos recursos, mantenha o
+web MVP em execução e suba o Ollama separado:
+
+```bash
+docker run -d --name personal-finance-ollama \
+  -p 11434:11434 \
+  -v personal-finance-ollama:/root/.ollama \
+  ollama/ollama
+docker exec personal-finance-ollama ollama pull qwen2.5:3b
+export OLLAMA_BASE_URL=http://127.0.0.1:11434
+export OLLAMA_MODEL=qwen2.5:3b
+```
+
+O smoke runner exige identidade e ID externo explícitos:
+
+```bash
+export PERSONAL_FINANCE_API_URL=http://127.0.0.1:8000/api/v1/integrations/agent
+export AGENT_SHARED_SECRET='o-mesmo-valor-do-.env'
+PYTHONPATH=. backend/.venv/bin/python -m agent.runner \
+  --sender +5592999999999 \
+  --message-id smoke-001 \
+  'Gastei R$ 25 com almoço hoje pelo Nubank.'
+```
+
+O mesmo `--message-id` deve retornar `replayed=true` em uma repetição. Esse
+runner valida o Ciclo 1, mas não substitui o gateway nem inicia o pareamento do
+WhatsApp do Ciclo 2.
 
 Antes de mandar mensagens, vincule o telefone autenticado ao usuário pela tela
 **Integrações**, ou pela API autenticada:

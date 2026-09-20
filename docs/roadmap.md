@@ -11,8 +11,8 @@ dependem de processos externos. “Código pronto” não significa “canal val
 | C–G. Contas, categorias, receitas, despesas e transferências | Concluído | API, UI e testes de saldo/duas pernas |
 | H–J. Dashboard, saldo e gastos por categoria | Concluído | dashboard responsivo e cálculos no backend |
 | K–L. Orçamentos e metas | Concluído | CRUD essencial, progresso e agregação de subcategorias |
-| M–O. Mensagem WhatsApp cria despesa e atualiza dashboard | Código pronto; canal pendente | tool, FastAPI, PostgreSQL e idempotência validados; falta sessão Hermes/Baileys real |
-| P–Q. Consulta de transporte responde com dados reais | Código pronto; canal pendente | `get_category_summary` consulta o backend; falta round trip no WhatsApp real |
+| M–O. Mensagem WhatsApp cria despesa e atualiza dashboard | Ciclo 1 concluído; canal pendente | Ollama + runner, tool, FastAPI, PostgreSQL e idempotência validados; falta sessão Hermes/Baileys real |
+| P–Q. Consulta de transporte responde com dados reais | Ciclo 1 concluído; canal pendente | `get_category_summary` retornou `R$ 78,00` pelo backend; falta round trip no WhatsApp real |
 | R. Reentrega não duplica transação | Concluído no backend | chave por usuário/mensagem e teste em PostgreSQL |
 
 O MVP web está utilizável. O MVP conversacional só deve ser declarado aceito
@@ -21,10 +21,16 @@ depois dos dois round trips reais pelo WhatsApp descritos em
 
 ## Próximos passos priorizados
 
+O Ciclo 1 foi concluído localmente em 20/09/2026. O Ollama foi executado em
+container separado por falta de instalação nativa sem `sudo` interativo; o
+modelo validado foi `qwen2.5:3b`, adequado aos recursos disponíveis nesta
+máquina. O Ciclo 2 permanece deliberadamente pendente até a autorização para
+iniciar o gateway e parear o WhatsApp.
+
 ### P0 — fechar o milestone conversacional
 
-1. Instalar e executar Ollama no host com um modelo adequado a português e
-   tool calling.
+1. Manter Ollama local (host ou container separado) com um modelo adequado a
+   português e tool calling; o Ciclo 1 validou `qwen2.5:3b`.
 2. Instalar/configurar Hermes e validar o plugin com a versão real disponível.
 3. Parear uma sessão de desenvolvimento WhatsApp Web/Baileys.
 4. Executar os cenários M–R de ponta a ponta e anexar as evidências sanitizadas

@@ -26,11 +26,18 @@ def _schema(
     return {
         "name": name,
         "description": description,
-        "parameters": {"type": "object", "properties": properties, "required": required or []},
+        "parameters": {
+            "type": "object",
+            "properties": properties,
+            "required": required or [],
+        },
     }
 
 
-AMOUNT = {"type": "number", "description": "Valor positivo em reais, com no máximo duas casas."}
+AMOUNT = {
+    "type": "number",
+    "description": "Valor positivo em reais, com no máximo duas casas.",
+}
 DATE = {
     "type": "string",
     "description": "Data absoluta ISO YYYY-MM-DD. Não combine com relative_date.",
@@ -113,7 +120,12 @@ TOOLS = [
     ),
     BackendTool(
         "get_accounts",
-        _schema("get_accounts", "Consulta contas ativas e saldo retornado pelo backend.", {}, []),
+        _schema(
+            "get_accounts",
+            "Consulta contas ativas e saldo retornado pelo backend.",
+            {},
+            [],
+        ),
         "GET",
         "accounts",
     ),
@@ -168,7 +180,10 @@ TOOLS = [
     BackendTool(
         "get_budget_status",
         _schema(
-            "get_budget_status", "Consulta orçamento, utilizado, restante e excedente.", {}, []
+            "get_budget_status",
+            "Consulta orçamento, utilizado, restante e excedente.",
+            {},
+            [],
         ),
         "GET",
         "budget-status",
@@ -178,7 +193,11 @@ TOOLS = [
         _schema(
             "create_budget",
             "Cria ou atualiza o limite mensal de uma categoria.",
-            {"category_name": {"type": "string"}, "limit_amount": AMOUNT, "month": DATE},
+            {
+                "category_name": {"type": "string"},
+                "limit_amount": AMOUNT,
+                "month": DATE,
+            },
             ["category_name", "limit_amount"],
         ),
         "POST",

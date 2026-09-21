@@ -66,9 +66,10 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
    expiração, bloqueio das tools financeiras enquanto pendente e revogação ao
    desvincular. Ainda falta executar esse fluxo no WhatsApp real com um número
    autorizado.
-2. Retenção definida e rotina de limpeza implementada em
-   `app.maintenance`; falta apenas escolher e agendar o scheduler de produção
-   conforme a política de retenção do serviço.
+2. Retenção definida e rotina de limpeza implementada em `app.maintenance`.
+   Unidades opcionais `systemd --user` e o runbook foram adicionados; a
+   ativação continua manual e depende da política de retenção, backup e
+   restauração do ambiente compartilhado.
 3. Backup/restore local implementados com checksum, confirmação explícita e
    validação em banco temporário. Ainda falta definir retenção e armazenamento
    cifrado para produção.

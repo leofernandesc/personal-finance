@@ -229,6 +229,11 @@ idempotência de mensagens e a auditoria. A rotina nunca remove dados
 financeiros; antes de definir um agendamento compartilhado, configure backup e
 retenção conforme a política de privacidade do serviço.
 
+Para um host Linux com `systemd --user`, há um timer semanal versionado em
+`ops/systemd/`. Ele não é ativado automaticamente; siga o runbook em
+[`docs/operations.md`](docs/operations.md) somente depois de validar backup,
+restauração e retenção.
+
 ## Fluxos principais
 
 ### Web
@@ -513,6 +518,8 @@ vazios, loading, erro e feedback de salvamento.
   paginação estável do histórico sem offset.
 - [`docs/architecture/0015-browser-e2e.md`](docs/architecture/0015-browser-e2e.md):
   estratégia de E2E web, isolamento e cobertura responsiva.
+- [`docs/architecture/0016-maintenance-scheduler.md`](docs/architecture/0016-maintenance-scheduler.md):
+  scheduler opcional e explícito para retenção operacional.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

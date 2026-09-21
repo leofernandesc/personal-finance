@@ -1,0 +1,12 @@
+[Unit]
+Description=Agendamento semanal da limpeza operacional do Organiza Finanças
+Documentation=https://github.com/leofernandesc/personal-finance/blob/main/docs/operations.md
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=personal-finance-maintenance.service
+
+[Install]
+WantedBy=timers.target

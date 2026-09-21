@@ -1,0 +1,12 @@
+[Unit]
+Description=Limpeza operacional do Organiza Finanças
+Documentation=https://github.com/leofernandesc/personal-finance/blob/main/docs/operations.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=%h/personal-finance/.env
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/personal-finance/backend
+EnvironmentFile=%h/personal-finance/.env
+ExecStart=%h/personal-finance/backend/.venv/bin/python -m app.maintenance --apply

@@ -1,4 +1,4 @@
-# Personal Finance
+# Organiza Finanças
 
 Aplicação local de controle de finanças pessoais com dashboard web, API
 multiusuário e uma camada conversacional preparada para Hermes, Ollama e

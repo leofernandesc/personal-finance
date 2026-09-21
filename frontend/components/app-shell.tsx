@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
-  BookOpen,
   ChevronDown,
   CircleDollarSign,
   LayoutDashboard,
@@ -22,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
+import { BrandLogo } from "@/components/brand";
 import { Badge, Button } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { WhatsAppIdentity } from "@/lib/types";
@@ -70,14 +70,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   };
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-white px-4 py-5">
-      <Link href="/dashboard" className="mb-9 flex items-center gap-3 px-3" onClick={onNavigate}>
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy text-white">
-          <BookOpen size={18} strokeWidth={1.8} />
-        </span>
-        <span>
-          <span className="block font-display text-xl leading-none tracking-[-0.03em]">norte</span>
-          <span className="mt-1 block text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-muted">finanças pessoais</span>
-        </span>
+      <Link href="/dashboard" className="mb-9 flex items-center px-3" onClick={onNavigate}>
+        <BrandLogo size="sidebar" priority />
       </Link>
 
       <nav aria-label="Navegação principal" className="space-y-1">
@@ -143,8 +137,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <main className="lg:pl-[248px]">
         <header className="sticky top-0 z-30 flex h-[70px] items-center justify-between border-b border-line/80 bg-paper/90 px-5 backdrop-blur md:px-8 lg:px-10">
-          <button className="rounded-lg p-2 text-muted hover:bg-white lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
-          <div className="hidden text-sm text-muted lg:block">Controle claro para decisões melhores.</div>
+          <div className="flex items-center gap-3">
+            <button className="rounded-lg p-2 text-muted hover:bg-brand-pink-soft lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
+            <Link href="/dashboard" className="lg:hidden" aria-label="Ir para o dashboard"><BrandLogo size="mobile" priority /></Link>
+          </div>
+          <div className="hidden text-sm text-muted lg:block">Organize com clareza. Decida com calma.</div>
           <div className="ml-auto flex items-center gap-3">
             <Link href="/integrations" className="hidden sm:block" aria-label="Abrir integração do WhatsApp">
               <Badge tone={whatsappIdentity?.linked ? "whatsapp" : "neutral"}>

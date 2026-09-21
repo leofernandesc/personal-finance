@@ -5,18 +5,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        paper: "#f6f5f1",
-        ink: "#17212b",
-        muted: "#6d7782",
-        line: "#e4e5e1",
-        navy: "#183a4d",
-        mint: "#bde8d2",
-        moss: "#2f6b58",
-        rust: "#b95d45",
-        butter: "#f4e7a8",
+        paper: "#ffffff",
+        ink: "#34231f",
+        muted: "#7b6c68",
+        line: "#eadfdd",
+        navy: "#533129",
+        mint: "#f5dfdf",
+        moss: "#76584e",
+        rust: "#b56d70",
+        butter: "#f4e7df",
+        "brand-brown": "#533129",
+        "brand-brown-dark": "#3b211c",
+        "brand-pink": "#e8b8b8",
+        "brand-pink-soft": "#fbf1f1",
       },
       boxShadow: {
-        card: "0 12px 35px rgba(24, 58, 77, 0.06)",
+        card: "0 12px 35px rgba(83, 49, 41, 0.07)",
       },
       borderRadius: {
         card: "1.15rem",

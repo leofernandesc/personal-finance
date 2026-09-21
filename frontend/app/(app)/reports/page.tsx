@@ -35,7 +35,7 @@ import {
   todayForTimezone,
 } from "@/lib/utils";
 
-const colors = ["#2f6b58", "#183a4d", "#d98d63", "#9aa85a", "#b99b3b"];
+const colors = ["#76584e", "#e8b8b8", "#a87565", "#c99a8f", "#8e6e62"];
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -116,12 +116,12 @@ export default function ReportsPage() {
                 <div className="h-[340px] px-3 pb-6 pt-5 md:px-6" role="img" aria-label="Gráfico de receitas e despesas dos últimos seis meses">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={evolution} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke="#e4e5e1" strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#6d7782", fontSize: 10 }} minTickGap={18} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fill: "#6d7782", fontSize: 10 }} tickFormatter={(value) => `R$${value}`} />
-                      <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e4e5e1", fontSize: 12 }} formatter={(value) => money(Number(value))} />
-                      <Bar dataKey="incomeValue" name="Receitas" fill="#2f6b58" radius={[5, 5, 0, 0]} />
-                      <Bar dataKey="expenseValue" name="Despesas" fill="#d98d63" radius={[5, 5, 0, 0]} />
+                      <CartesianGrid vertical={false} stroke="#eadfdd" strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#7b6c68", fontSize: 10 }} minTickGap={18} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fill: "#7b6c68", fontSize: 10 }} tickFormatter={(value) => `R$${value}`} />
+                      <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #eadfdd", fontSize: 12 }} formatter={(value) => money(Number(value))} />
+                      <Bar dataKey="incomeValue" name="Receitas" fill="#76584e" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="expenseValue" name="Despesas" fill="#b56d70" radius={[5, 5, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

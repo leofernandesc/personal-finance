@@ -26,3 +26,60 @@ def test_whatsapp_requires_an_explicit_allowlist(tmp_path, monkeypatch):
 
     assert result.status == "warn"
     assert "WHATSAPP_ALLOWED_USERS" in result.detail
+
+
+def test_whatsapp_rejects_wildcard_allowlist_for_acceptance(tmp_path, monkeypatch):
+    (tmp_path / "creds.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "agent.integration_check._get_json",
+        lambda _url: {"status": "connected"},
+    )
+
+    result = check_whatsapp(Path(tmp_path), "http://127.0.0.1:3300", "*", mode="bot")
+
+    assert result.status == "warn"
+    assert "wildcard" in result.detail
+
+
+def test_whatsapp_requires_bot_mode_even_with_allowlist(tmp_path, monkeypatch):
+    (tmp_path / "creds.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "agent.integration_check._get_json",
+        lambda _url: {"status": "connected"},
+    )
+
+    result = check_whatsapp(
+        Path(tmp_path), "http://127.0.0.1:3300", "+5592999999999", mode="self-chat"
+    )
+
+    assert result.status == "warn"
+    assert "WHATSAPP_MODE=bot" in result.detail
+
+
+def test_whatsapp_requires_e164_allowlist_entries(tmp_path, monkeypatch):
+    (tmp_path / "creds.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "agent.integration_check._get_json",
+        lambda _url: {"status": "connected"},
+    )
+
+    result = check_whatsapp(
+        Path(tmp_path), "http://127.0.0.1:3300", "5592999999999", mode="bot"
+    )
+
+    assert result.status == "warn"
+    assert "E.164" in result.detail
+
+
+def test_whatsapp_accepts_bot_with_specific_allowlist(tmp_path, monkeypatch):
+    (tmp_path / "creds.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "agent.integration_check._get_json",
+        lambda _url: {"status": "connected"},
+    )
+
+    result = check_whatsapp(
+        Path(tmp_path), "http://127.0.0.1:3300", "+5592999999999", mode="bot"
+    )
+
+    assert result.status == "ok"

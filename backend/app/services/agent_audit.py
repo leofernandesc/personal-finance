@@ -94,13 +94,39 @@ def _record_failed_call(
     tool_name: str,
     error: Exception,
 ) -> None:
+    record_agent_tool_result(
+        db,
+        principal,
+        intent=intent,
+        tool_name=tool_name,
+        error=error,
+    )
+
+
+def record_agent_tool_result(
+    db: Session,
+    principal: AgentIdentity,
+    *,
+    intent: str,
+    tool_name: str,
+    error: Exception | None = None,
+) -> None:
+    """Persist an agent result without storing message text or tool payloads.
+
+    This is used by non-financial agent operations, such as WhatsApp
+    possession verification, that still need the same technical audit trail as
+    financial tools but do not fit the financial-operation context manager.
+    Any changes already made in the current request are committed together
+    with the audit row.
+    """
     message = _get_or_create_message(db, principal)
     now = datetime.now(UTC)
-    code = _error_code(error)
+    status = "error" if error is not None else "success"
+    code = _error_code(error) if error is not None else None
     message.user_id = principal.user.id
     message.intent = intent
     message.tool_name = tool_name
-    message.status = "error"
+    message.status = status
     message.error_code = code
     message.transaction_id = None
     message.transfer_id = None
@@ -111,7 +137,7 @@ def _record_failed_call(
             user_id=principal.user.id,
             intent=intent,
             tool_name=tool_name,
-            status="error",
+            status=status,
             error_code=code,
             processed_at=now,
         )

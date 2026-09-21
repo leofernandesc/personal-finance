@@ -168,7 +168,8 @@ export WHATSAPP_ALLOWED_USERS=+5592XXXXXXXXX
 ```
 
 O `make cycle3-ready` permanece em warning enquanto essa variável não existir,
-mesmo que a sessão Baileys esteja conectada.
+mesmo que a sessão Baileys esteja conectada. Ele também exige
+`WHATSAPP_MODE=bot` e rejeita `WHATSAPP_ALLOWED_USERS=*` no aceite.
 
 ## Smoke runner
 

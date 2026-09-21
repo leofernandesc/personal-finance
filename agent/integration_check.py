@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import urllib.error
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 MIN_HERMES_CONTEXT_LENGTH = 64_000
+E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
 @dataclass(frozen=True)
@@ -132,7 +134,10 @@ def check_hermes(repo_root: Path) -> Check:
 
 
 def check_whatsapp(
-    session_dir: Path, bridge_url: str, allowed_users: str | None
+    session_dir: Path,
+    bridge_url: str,
+    allowed_users: str | None,
+    mode: str | None = None,
 ) -> Check:
     creds = session_dir / "creds.json"
     if not creds.exists():
@@ -145,11 +150,34 @@ def check_whatsapp(
         )
     if health.get("status") != "connected":
         return Check("whatsapp", "warn", f"bridge em estado {health.get('status')!r}")
-    if not (allowed_users or "").strip():
+    entries = {
+        entry.strip() for entry in (allowed_users or "").split(",") if entry.strip()
+    }
+    if not entries:
         return Check(
             "whatsapp",
             "warn",
             "bridge conectado, mas WHATSAPP_ALLOWED_USERS não está definido",
+        )
+    if "*" in entries:
+        return Check(
+            "whatsapp",
+            "warn",
+            "WHATSAPP_ALLOWED_USERS não pode usar wildcard no aceite do Ciclo 3",
+        )
+    invalid_entries = sum(not E164_RE.fullmatch(entry) for entry in entries)
+    if invalid_entries:
+        return Check(
+            "whatsapp",
+            "warn",
+            f"allowlist contém {invalid_entries} entrada(s) fora do formato E.164",
+        )
+    normalized_mode = (mode or "").strip().lower()
+    if normalized_mode != "bot":
+        return Check(
+            "whatsapp",
+            "warn",
+            "bridge conectado, mas WHATSAPP_MODE=bot não está configurado",
         )
     return Check("whatsapp", "ok", "sessão Baileys conectada")
 
@@ -181,6 +209,7 @@ def run_checks(repo_root: Path) -> list[Check]:
             os.getenv("HERMES_WHATSAPP_BRIDGE_URL", "http://127.0.0.1:3300"),
             os.getenv("WHATSAPP_ALLOWED_USERS")
             or os.getenv("HERMES_WHATSAPP_ALLOWED_USERS"),
+            os.getenv("WHATSAPP_MODE"),
         ),
     ]
 

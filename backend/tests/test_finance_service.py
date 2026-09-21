@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -6,10 +6,10 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.deps import AgentPrincipal
-from app.api.v1.agent import agent_transaction
+from app.api.v1.agent import _verification_digest, agent_transaction, verify_whatsapp
 from app.core.security import hash_password
-from app.models import AgentToolCall, Budget, User
-from app.schemas.agent import AgentTransactionRequest
+from app.models import AgentToolCall, Budget, User, WhatsAppIdentity
+from app.schemas.agent import AgentTransactionRequest, AgentWhatsAppVerificationRequest
 from app.schemas.finance import (
     AccountCreate,
     AccountUpdate,
@@ -433,6 +433,41 @@ def test_agent_failure_is_audited_without_financial_write(db):
     assert call.status == "error"
     assert call.error_code == "CATEGORY_NOT_FOUND"
     assert list_transactions(db, user) == []
+
+
+def test_agent_verification_result_is_audited_without_storing_the_code(db):
+    user = make_user()
+    db.add(user)
+    db.flush()
+    phone = "+5592999999999"
+    db.add(
+        WhatsAppIdentity(
+            user_id=user.id,
+            phone_e164=phone,
+            verification_code_hash=_verification_digest(phone, "123456"),
+            verification_expires_at=datetime.now(UTC) + timedelta(minutes=5),
+            is_active=True,
+        )
+    )
+    db.flush()
+    principal = AgentPrincipal(
+        user=user,
+        provider="whatsapp",
+        sender_id=phone,
+        message_id="wamid-verification-audit",
+    )
+
+    result = verify_whatsapp(
+        AgentWhatsAppVerificationRequest(code="123456"),
+        principal=principal,
+        db=db,
+    )
+
+    call = db.query(AgentToolCall).one()
+    assert result["verified"] is True
+    assert call.status == "success"
+    assert call.tool_name == "verify_whatsapp"
+    assert call.error_code is None
 
 
 def test_seeded_outros_category_accepts_ambiguous_income(db):

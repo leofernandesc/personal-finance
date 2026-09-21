@@ -2,6 +2,7 @@ import hashlib
 import hmac
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,7 +37,7 @@ from app.schemas.agent import (
     AgentWhatsAppVerificationRequest,
 )
 from app.schemas.finance import GoalCreate, TransactionCreate, TransactionUpdate, TransferCreate
-from app.services.agent_audit import audited_agent_operation
+from app.services.agent_audit import audited_agent_operation, record_agent_tool_result
 from app.services.finance import (
     balance_for_account,
     budget_status,
@@ -62,6 +63,23 @@ MAX_VERIFICATION_ATTEMPTS = 5
 def _verification_digest(phone_e164: str, code: str) -> str:
     value = f"{phone_e164}:{code}".encode()
     return hmac.new(settings.agent_shared_secret.encode(), value, hashlib.sha256).hexdigest()
+
+
+def _verification_error(
+    db: Session,
+    principal: AgentPrincipal,
+    status_code: int,
+    detail: str,
+) -> NoReturn:
+    error = HTTPException(status_code=status_code, detail=detail)
+    record_agent_tool_result(
+        db,
+        principal,
+        intent="verify_whatsapp",
+        tool_name="verify_whatsapp",
+        error=error,
+    )
+    raise error
 
 
 def _account_by_name(db: Session, user: User, name: str | None) -> Account:
@@ -248,13 +266,21 @@ def verify_whatsapp(
         )
     )
     if not identity:
-        raise HTTPException(status_code=404, detail="Número WhatsApp não vinculado")
+        _verification_error(db, principal, 404, "Número WhatsApp não vinculado")
     if identity.verified_at is not None:
+        record_agent_tool_result(
+            db,
+            principal,
+            intent="verify_whatsapp",
+            tool_name="verify_whatsapp",
+        )
         return {"verified": True, "phone_e164": identity.phone_e164}
     if not identity.verification_code_hash or not identity.verification_expires_at:
-        raise HTTPException(
-            status_code=409,
-            detail="Nenhum código de verificação ativo. Gere um novo código na aplicação.",
+        _verification_error(
+            db,
+            principal,
+            409,
+            "Nenhum código de verificação ativo. Gere um novo código na aplicação.",
         )
     now = datetime.now(UTC)
     expires_at = identity.verification_expires_at
@@ -264,25 +290,30 @@ def verify_whatsapp(
         identity.verification_code_hash = None
         identity.verification_expires_at = None
         identity.verification_attempts = 0
-        db.commit()
-        raise HTTPException(status_code=410, detail="Código de verificação expirado")
+        _verification_error(db, principal, 410, "Código de verificação expirado")
     if identity.verification_attempts >= MAX_VERIFICATION_ATTEMPTS:
-        raise HTTPException(
-            status_code=429,
-            detail="Limite de tentativas atingido. Gere um novo código na aplicação.",
+        _verification_error(
+            db,
+            principal,
+            429,
+            "Limite de tentativas atingido. Gere um novo código na aplicação.",
         )
 
     identity.verification_attempts += 1
     expected = _verification_digest(identity.phone_e164, payload.code)
     if not hmac.compare_digest(identity.verification_code_hash, expected):
-        db.commit()
-        raise HTTPException(status_code=400, detail="Código de verificação inválido")
+        _verification_error(db, principal, 400, "Código de verificação inválido")
 
     identity.verified_at = now
     identity.verification_code_hash = None
     identity.verification_expires_at = None
     identity.verification_attempts = 0
-    db.commit()
+    record_agent_tool_result(
+        db,
+        principal,
+        intent="verify_whatsapp",
+        tool_name="verify_whatsapp",
+    )
     return {"verified": True, "phone_e164": identity.phone_e164}
 
 

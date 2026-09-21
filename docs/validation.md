@@ -31,7 +31,7 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 21/09/2026, passaram 32 testes de backend, 15 testes da fronteira
+Na revisão de 21/09/2026, passaram 33 testes de backend, 19 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
@@ -85,6 +85,11 @@ O verificador `make cycle3-check` foi adicionado para separar pré-requisitos
 locais de código já validado. Ele consulta somente endpoints de saúde, não lê o
 conteúdo das credenciais e não altera o banco.
 
+Para o aceite estrito, a checagem exige que o ambiente declare
+`WHATSAPP_MODE=bot` e uma allowlist específica em `WHATSAPP_ALLOWED_USERS`; as
+entradas precisam estar em E.164. Uma sessão conectada em `self-chat`, uma
+allowlist vazia, um wildcard ou um número malformado continuam como warning.
+
 Na primeira execução deste ciclo, antes de subir o bridge:
 
 - backend e `hermes plugins doctor` passaram;
@@ -131,7 +136,7 @@ código e testes automatizados:
 - o resumo aparece no diagnóstico concluído e em um card do dashboard;
 - não existe upload de documentos e nenhuma resposta cria transação, conta,
   orçamento ou meta automaticamente;
-- `make check` passou: 32 testes de backend, 15 do agente, 21 do frontend e
+- `make check` passou: 33 testes de backend, 19 do agente, 21 do frontend e
   build de produção do Next.js.
 
 A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite

@@ -31,7 +31,7 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 21/09/2026, passaram 33 testes de backend, 19 testes da fronteira
+Na revisão de 21/09/2026, passaram 34 testes de backend, 19 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
@@ -73,6 +73,8 @@ no Docker Compose:
   no backend;
 - tools de sucesso e erro foram persistidas separadamente em
   `agent_tool_calls`;
+- `delete_transaction` criou uma ação pendente e só excluiu depois do token
+  expirável correspondente, sem alterar a transação na primeira chamada;
 - o frontend Next.js 16 em Compose iniciou em `:3000` e respondeu `200`;
 - lint, typecheck, build de produção e `npm audit` passaram, com zero
   vulnerabilidades reportadas nas dependências auditadas;
@@ -141,7 +143,7 @@ código e testes automatizados:
 - o resumo aparece no diagnóstico concluído e em um card do dashboard;
 - não existe upload de documentos e nenhuma resposta cria transação, conta,
   orçamento ou meta automaticamente;
-- `make check` passou: 33 testes de backend, 19 do agente, 21 do frontend e
+- `make check` passou: 34 testes de backend, 19 do agente, 21 do frontend e
   build de produção do Next.js.
 
 A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite

@@ -6,10 +6,19 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.deps import AgentPrincipal
-from app.api.v1.agent import _verification_digest, agent_transaction, verify_whatsapp
+from app.api.v1.agent import (
+    _verification_digest,
+    agent_delete_transaction,
+    agent_transaction,
+    verify_whatsapp,
+)
 from app.core.security import hash_password
 from app.models import AgentToolCall, Budget, User, WhatsAppIdentity
-from app.schemas.agent import AgentTransactionRequest, AgentWhatsAppVerificationRequest
+from app.schemas.agent import (
+    AgentTransactionDeleteRequest,
+    AgentTransactionRequest,
+    AgentWhatsAppVerificationRequest,
+)
 from app.schemas.finance import (
     AccountCreate,
     AccountUpdate,
@@ -468,6 +477,65 @@ def test_agent_verification_result_is_audited_without_storing_the_code(db):
     assert call.status == "success"
     assert call.tool_name == "verify_whatsapp"
     assert call.error_code is None
+
+
+def test_agent_delete_requires_explicit_confirmation_token(db):
+    user, account, _destination, food, _salary = setup_finances(db)
+    transaction = create_transaction(
+        db,
+        user,
+        TransactionCreate(
+            account_id=account.id,
+            category_id=food.id,
+            type="expense",
+            amount=Decimal("25.00"),
+            description="Almoço",
+            transaction_date=date(2026, 9, 20),
+        ),
+    )
+    db.commit()
+    first_principal = AgentPrincipal(
+        user=user,
+        provider="whatsapp",
+        sender_id="+5592999999999",
+        message_id="wamid-delete-request",
+    )
+
+    pending = agent_delete_transaction(
+        transaction.id,
+        payload=AgentTransactionDeleteRequest(transaction_id=transaction.id),
+        principal=first_principal,
+        db=db,
+    )
+
+    assert pending["deleted"] is False
+    assert pending["confirmation_required"] is True
+    assert list_transactions(db, user)
+
+    confirmation_principal = AgentPrincipal(
+        user=user,
+        provider="whatsapp",
+        sender_id="+5592999999999",
+        message_id="wamid-delete-confirm",
+    )
+    deleted = agent_delete_transaction(
+        transaction.id,
+        payload=AgentTransactionDeleteRequest(
+            transaction_id=transaction.id,
+            confirmation_token=pending["confirmation_token"],
+        ),
+        principal=confirmation_principal,
+        db=db,
+    )
+
+    assert deleted["deleted"] is True
+    assert list_transactions(db, user) == []
+    calls = list(db.query(AgentToolCall).order_by(AgentToolCall.created_at))
+    assert [call.tool_name for call in calls[-2:]] == [
+        "delete_transaction",
+        "delete_transaction",
+    ]
+    assert all(call.status == "success" for call in calls[-2:])
 
 
 def test_seeded_outros_category_accepts_ambiguous_income(db):

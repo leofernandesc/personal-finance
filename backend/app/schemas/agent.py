@@ -72,6 +72,17 @@ class AgentTransactionUpdateRequest(AgentDatedRequest):
         return validate_money(value) if value is not None else None
 
 
+class AgentTransactionDeleteRequest(APIModel):
+    transaction_id: UUID | None = None
+    confirmation_token: str | None = Field(default=None, min_length=16, max_length=128)
+
+    @field_validator("confirmation_token")
+    @classmethod
+    def clean_confirmation_token(cls, value: str | None) -> str | None:
+        cleaned = value.strip() if value else None
+        return cleaned or None
+
+
 class AgentBudgetRequest(APIModel):
     category_name: str = Field(min_length=1, max_length=80)
     limit_amount: Decimal = Field(gt=Decimal("0.00"), max_digits=14, decimal_places=2)

@@ -105,7 +105,13 @@ TOOLS = [
         _schema(
             "delete_transaction",
             "Exclui uma única transação depois de confirmação explícita do usuário.",
-            {"transaction_id": {"type": "string"}},
+            {
+                "transaction_id": {"type": "string"},
+                "confirmation_token": {
+                    "type": "string",
+                    "description": "Token retornado pela primeira tentativa; use somente após um sim explícito.",
+                },
+            },
             ["transaction_id"],
         ),
         "DELETE",

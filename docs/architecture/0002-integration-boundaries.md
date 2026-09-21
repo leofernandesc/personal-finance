@@ -22,5 +22,6 @@ Aceito.
 ## Operações de risco
 
 Exclusão em massa, reset, alterações em massa e exclusão de contas/histórico não
-devem ser executados por uma única interpretação. O agente deve criar uma ação
-pendente com token de confirmação e só então chamar uma tool destrutiva.
+devem ser executados por uma única interpretação. Para exclusão unitária, o
+backend cria uma `PendingAgentAction` com token expirável e só executa a tool
+destrutiva depois que o mesmo usuário/remetente confirma explicitamente.

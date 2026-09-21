@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import NoReturn
@@ -15,13 +16,14 @@ from app.api.deps import (
     get_agent_verification_principal,
 )
 from app.core.config import get_settings
-from app.core.security import normalize_phone
+from app.core.security import hash_token, normalize_phone
 from app.db.session import get_db
 from app.models import (
     Account,
     AgentMessage,
     Budget,
     Category,
+    PendingAgentAction,
     Transaction,
     Transfer,
     User,
@@ -31,6 +33,7 @@ from app.schemas.agent import (
     AgentBudgetRequest,
     AgentGoalRequest,
     AgentInboundRequest,
+    AgentTransactionDeleteRequest,
     AgentTransactionRequest,
     AgentTransactionUpdateRequest,
     AgentTransferRequest,
@@ -58,6 +61,7 @@ from app.services.goals import create_goal
 router = APIRouter(prefix="/integrations/agent", tags=["agent"])
 settings = get_settings()
 MAX_VERIFICATION_ATTEMPTS = 5
+DELETE_CONFIRMATION_TTL = timedelta(minutes=10)
 
 
 def _verification_digest(phone_e164: str, code: str) -> str:
@@ -77,6 +81,26 @@ def _verification_error(
         principal,
         intent="verify_whatsapp",
         tool_name="verify_whatsapp",
+        error=error,
+    )
+    raise error
+
+
+def _agent_operation_error(
+    db: Session,
+    principal: AgentPrincipal,
+    status_code: int,
+    detail: str,
+    *,
+    intent: str,
+    tool_name: str,
+) -> NoReturn:
+    error = HTTPException(status_code=status_code, detail=detail)
+    record_agent_tool_result(
+        db,
+        principal,
+        intent=intent,
+        tool_name=tool_name,
         error=error,
     )
     raise error
@@ -475,9 +499,116 @@ def agent_update_transaction(
 @router.delete("/transactions/{transaction_id}")
 def agent_delete_transaction(
     transaction_id: UUID,
+    payload: AgentTransactionDeleteRequest | None = None,
     principal: AgentPrincipal = Depends(get_agent_principal),
     db: Session = Depends(get_db),
 ):
+    if payload and payload.transaction_id and payload.transaction_id != transaction_id:
+        _agent_operation_error(
+            db,
+            principal,
+            400,
+            "ID da transação inconsistente",
+            intent="delete_transaction",
+            tool_name="delete_transaction",
+        )
+
+    transaction = db.scalar(
+        select(Transaction).where(
+            Transaction.id == transaction_id,
+            Transaction.user_id == principal.user.id,
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    if not transaction:
+        _agent_operation_error(
+            db,
+            principal,
+            404,
+            "Transação não encontrada",
+            intent="delete_transaction",
+            tool_name="delete_transaction",
+        )
+
+    confirmation_token = payload.confirmation_token if payload else None
+    if not confirmation_token:
+        now = datetime.now(UTC)
+        for pending in db.scalars(
+            select(PendingAgentAction).where(
+                PendingAgentAction.user_id == principal.user.id,
+                PendingAgentAction.channel == principal.provider,
+                PendingAgentAction.sender_id == principal.sender_id,
+                PendingAgentAction.action_type == "delete_transaction",
+                PendingAgentAction.confirmed_at.is_(None),
+                PendingAgentAction.expires_at > now,
+            )
+        ):
+            if (pending.payload or {}).get("transaction_id") == str(transaction_id):
+                pending.expires_at = now
+
+        confirmation_token = secrets.token_urlsafe(32)
+        expires_at = now + DELETE_CONFIRMATION_TTL
+        db.add(
+            PendingAgentAction(
+                user_id=principal.user.id,
+                channel=principal.provider,
+                sender_id=principal.sender_id,
+                action_type="delete_transaction",
+                payload={"transaction_id": str(transaction_id)},
+                confirmation_token_hash=hash_token(confirmation_token),
+                expires_at=expires_at,
+            )
+        )
+        record_agent_tool_result(
+            db,
+            principal,
+            intent="delete_transaction",
+            tool_name="delete_transaction",
+        )
+        return {
+            "deleted": False,
+            "confirmation_required": True,
+            "confirmation_token": confirmation_token,
+            "transaction_id": transaction_id,
+            "description": transaction.description,
+            "amount": str(transaction.amount),
+            "expires_at": expires_at,
+            "message": (
+                "Confirmação necessária. Pergunte se a pessoa deseja excluir esta "
+                "transação e só use o token depois de um sim explícito."
+            ),
+        }
+
+    pending = db.scalar(
+        select(PendingAgentAction).where(
+            PendingAgentAction.user_id == principal.user.id,
+            PendingAgentAction.channel == principal.provider,
+            PendingAgentAction.sender_id == principal.sender_id,
+            PendingAgentAction.action_type == "delete_transaction",
+            PendingAgentAction.confirmation_token_hash == hash_token(confirmation_token),
+            PendingAgentAction.confirmed_at.is_(None),
+            PendingAgentAction.expires_at > datetime.now(UTC),
+        )
+    )
+    if not pending:
+        _agent_operation_error(
+            db,
+            principal,
+            409,
+            "Token de confirmação inexistente ou expirado",
+            intent="delete_transaction",
+            tool_name="delete_transaction",
+        )
+    if (pending.payload or {}).get("transaction_id") != str(transaction_id):
+        _agent_operation_error(
+            db,
+            principal,
+            409,
+            "Token de confirmação não corresponde à transação",
+            intent="delete_transaction",
+            tool_name="delete_transaction",
+        )
+
     with audited_agent_operation(
         db,
         principal,
@@ -493,9 +624,14 @@ def agent_delete_transaction(
         )
         if not transaction:
             raise HTTPException(status_code=404, detail="Transação não encontrada")
+        pending.confirmed_at = datetime.now(UTC)
         delete_transaction(db, principal.user, transaction_id)
         operation.link_transaction(transaction_id)
-        return {"deleted": True, "transaction_id": transaction_id}
+        return {
+            "deleted": True,
+            "confirmation_required": False,
+            "transaction_id": transaction_id,
+        }
 
 
 @router.get("/accounts")

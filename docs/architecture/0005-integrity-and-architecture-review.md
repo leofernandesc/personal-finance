@@ -64,6 +64,11 @@ A mutação financeira e a linha de sucesso são commitadas juntas. Em erro, a
 operação financeira sofre rollback e o erro técnico é registrado em uma nova
 transação.
 
+A exclusão conversacional unitária não confia somente no prompt: a primeira
+chamada cria `PendingAgentAction` com token vinculado ao usuário, remetente e
+transação; a exclusão só é commitada depois da confirmação explícita com token
+válido e ainda não expirado.
+
 ### Categorias, relatórios e transferências
 
 - Orçamentos e dashboards agregam subcategorias na categoria raiz.

@@ -189,7 +189,7 @@ backend retorna `replayed: true` e mantém uma única transação.
 ## Escritas destrutivas
 
 O plugin não registra ferramentas de exclusão em massa, reset, exclusão de
-contas ou alteração em massa. `delete_transaction` é unitária e o prompt exige
-confirmação explícita. Caso a UX conversacional cresça para ações amplas, a
-implementação deve usar `PendingAgentAction` com expiração e token de
-confirmação antes de executar a mutação.
+contas ou alteração em massa. `delete_transaction` é unitária e o backend cria
+um token expirável em `PendingAgentAction`; a exclusão só ocorre depois de um
+“sim” explícito com o token correspondente. Caso a UX conversacional cresça
+para ações amplas, a mesma fronteira de confirmação deve ser mantida.

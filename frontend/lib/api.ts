@@ -3,6 +3,7 @@ import type {
   Budget,
   Category,
   DashboardData,
+  Diagnostic,
   Goal,
   ReportData,
   SourceType,
@@ -64,6 +65,14 @@ export const api = {
   register: (body: { email: string; password: string; full_name: string; timezone: string }) =>
     request<{ user: User }>("/auth/register", json("POST", body)),
   logout: () => request<{ message: string }>("/auth/logout", json("POST")),
+  diagnostic: () => request<Diagnostic>("/diagnostic"),
+  saveDiagnosticDraft: (body: { current_section: number; answers: Record<string, unknown> }) =>
+    request<Diagnostic>("/diagnostic/draft", json("PUT", body)),
+  submitDiagnostic: (body: {
+    answers: Record<string, unknown>;
+    consent_data_processing: boolean;
+    consent_service_disclaimer: boolean;
+  }) => request<Diagnostic>("/diagnostic/submit", json("POST", body)),
   dashboard: (start?: string, end?: string) =>
     request<DashboardData>(`/dashboard${start || end ? `?${new URLSearchParams({ ...(start ? { start } : {}), ...(end ? { end } : {}) })}` : ""}`),
   report: (month?: string, months = 6) => {

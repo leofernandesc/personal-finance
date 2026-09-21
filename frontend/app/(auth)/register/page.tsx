@@ -28,7 +28,7 @@ export default function RegisterPage() {
   React.useEffect(() => { if (!loading && user) router.replace("/dashboard"); }, [loading, router, user]);
   const onSubmit = async (values: FormValues) => {
     setError(null);
-    try { await signUp(values); router.replace("/dashboard"); }
+    try { await signUp(values); router.replace("/diagnostico?inicio=1"); }
     catch (reason) { setError(reason instanceof ApiError ? reason.message : "Não foi possível criar sua conta."); }
   };
   return <AuthFrame mode="register">

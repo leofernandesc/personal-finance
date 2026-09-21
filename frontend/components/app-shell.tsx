@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   BarChart3,
   ChevronDown,
+  ClipboardCheck,
   CircleDollarSign,
   LayoutDashboard,
   LogOut,
@@ -24,7 +25,7 @@ import { useAuth } from "@/components/auth-provider";
 import { BrandLogo } from "@/components/brand";
 import { Badge, Button } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { WhatsAppIdentity } from "@/lib/types";
+import type { Diagnostic, WhatsAppIdentity } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
@@ -38,6 +39,7 @@ const primaryNav: NavItem[] = [
 ];
 
 const secondaryNav: NavItem[] = [
+  { href: "/diagnostico", label: "Meu diagnóstico", icon: ClipboardCheck },
   { href: "/categories", label: "Categorias", icon: Tags },
   { href: "/reports", label: "Relatórios", icon: BarChart3 },
   { href: "/integrations", label: "Integrações", icon: CircleDollarSign },
@@ -103,8 +105,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [whatsappIdentity, setWhatsAppIdentity] = useState<WhatsAppIdentity | null>(null);
+  const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -117,6 +121,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     loadIdentity();
     window.addEventListener("whatsapp-identity-changed", loadIdentity);
     return () => window.removeEventListener("whatsapp-identity-changed", loadIdentity);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setDiagnostic(null);
+      return;
+    }
+    const loadDiagnostic = () => {
+      api.diagnostic().then(setDiagnostic).catch(() => setDiagnostic(null));
+    };
+    loadDiagnostic();
+    window.addEventListener("diagnostic-changed", loadDiagnostic);
+    return () => window.removeEventListener("diagnostic-changed", loadDiagnostic);
   }, [user]);
 
   useEffect(() => {
@@ -155,7 +172,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-xs font-bold text-white lg:hidden">{initials(user.full_name)}</span>
           </div>
         </header>
-        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-5 md:px-8 md:py-8 lg:px-10 lg:py-10">{children}</div>
+        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-5 md:px-8 md:py-8 lg:px-10 lg:py-10">
+          {diagnostic && diagnostic.status !== "completed" && pathname !== "/diagnostico" && <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-brand-pink/50 bg-brand-pink-soft px-4 py-3 text-sm text-brand-brown-dark sm:flex-row sm:items-center sm:justify-between"><div><strong>Seu diagnóstico está {diagnostic.status === "draft" ? "em andamento" : "pendente"}.</strong><span className="ml-1 text-brand-brown/80">Você pode continuar quando quiser.</span></div><Link href="/diagnostico" className="font-semibold underline underline-offset-4">Continuar diagnóstico</Link></div>}
+          {children}
+        </div>
       </main>
     </div>
   );

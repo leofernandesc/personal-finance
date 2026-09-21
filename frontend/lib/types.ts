@@ -11,6 +11,24 @@ export type User = {
   timezone: string;
 };
 
+export type DiagnosticStatus = "not_started" | "draft" | "completed";
+
+export type DiagnosticAnswers = Record<string, unknown>;
+
+export type Diagnostic = {
+  status: DiagnosticStatus;
+  current_section: number;
+  completion_percent: number;
+  version: number;
+  answers: DiagnosticAnswers;
+  consent_data_processing: boolean;
+  consent_service_disclaimer: boolean;
+  consent_version: string;
+  consented_at: string | null;
+  completed_at: string | null;
+  updated_at: string | null;
+};
+
 export type Account = {
   id: string;
   name: string;

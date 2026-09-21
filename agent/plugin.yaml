@@ -3,6 +3,7 @@ version: "0.2.0"
 description: "Tools do Hermes para consultar e operar o domínio financeiro via FastAPI."
 author: "Personal Finance"
 provides_tools:
+  - verify_whatsapp
   - create_transaction
   - update_transaction
   - delete_transaction

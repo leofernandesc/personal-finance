@@ -21,6 +21,26 @@ def _session_value(name: str, default: str = "") -> str:
     return os.getenv(name, default)
 
 
+def _canonical_sender_id(provider: str, sender_id: str) -> str:
+    """Use Hermes' WhatsApp LID map when this code runs inside Hermes.
+
+    Baileys may expose a contact as ``<lid>@lid`` even when the user linked
+    the account with an E.164 phone number. The backend deliberately stores
+    and resolves phone numbers, so the adapter boundary must normalize this
+    alias before sending authentication headers. The import is optional: the
+    deterministic local runner and unit tests can run without Hermes' source
+    tree and simply retain the value they were given.
+    """
+    if provider != "whatsapp" or not sender_id:
+        return sender_id
+    try:
+        from gateway.whatsapp_identity import canonical_whatsapp_identifier
+
+        return canonical_whatsapp_identifier(sender_id) or sender_id
+    except (ImportError, AttributeError, OSError, RuntimeError):
+        return sender_id
+
+
 @dataclass(frozen=True)
 class AgentContext:
     provider: str
@@ -29,10 +49,13 @@ class AgentContext:
 
 
 def current_context() -> AgentContext:
+    provider = _session_value("HERMES_SESSION_PLATFORM", "whatsapp") or "whatsapp"
+    sender_id = _session_value("HERMES_SESSION_USER_ID") or _session_value(
+        "HERMES_SESSION_CHAT_ID"
+    )
     return AgentContext(
-        provider=_session_value("HERMES_SESSION_PLATFORM", "whatsapp") or "whatsapp",
-        sender_id=_session_value("HERMES_SESSION_USER_ID")
-        or _session_value("HERMES_SESSION_CHAT_ID"),
+        provider=provider,
+        sender_id=_canonical_sender_id(provider, sender_id),
         message_id=_session_value("HERMES_SESSION_MESSAGE_ID") or None,
     )
 

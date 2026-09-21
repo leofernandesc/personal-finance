@@ -211,7 +211,7 @@ acesso permanece bloqueado nesta versão.
 
 ### Hermes + Ollama + WhatsApp
 
-O plugin vive em `agent/`. Ele registra 13 tools no toolset
+O plugin vive em `agent/`. Ele registra 14 tools no toolset
 `personal_finance`. Todas chamam endpoints `/api/v1/integrations/agent/*` com:
 
 - `X-Agent-Token` para autenticação entre processos;
@@ -257,10 +257,11 @@ curl -X POST http://localhost:8000/api/v1/integrations/whatsapp/link \
   -d '{"phone_e164":"+5592999999999"}'
 ```
 
-Esse vínculo manual existe somente para desenvolvimento e permanece com
-`verified=false`; ele não comprova posse do telefone. Uma implantação fora do
-ambiente local deve adicionar um desafio de verificação antes de autorizar o
-canal.
+Esse vínculo manual existe somente para desenvolvimento e começa com
+`verified=false`. Na tela de Integrações, gere o código temporário e envie-o
+pelo próprio WhatsApp; somente depois o backend libera as tools financeiras.
+Uma implantação fora do ambiente local deve manter esse desafio e adicionar
+políticas de retenção/monitoramento do canal.
 
 Verifique o plugin e habilite a descoberta local do monorepo:
 
@@ -271,7 +272,7 @@ ln -sfn "$(pwd)/agent" .hermes/plugins/personal-finance
 export HERMES_ENABLE_PROJECT_PLUGINS=1
 ```
 
-O doctor deve confirmar o manifesto, o import e as 13 tools. Execute o Hermes a
+O doctor deve confirmar o manifesto, o import e as 14 tools. Execute o Hermes a
 partir da raiz do repositório para que o plugin local seja descoberto. Para uma
 instalação permanente fora do monorepo, copie `agent/` para
 `~/.hermes/plugins/personal-finance/` e habilite `personal-finance` com o CLI.

@@ -31,14 +31,14 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 20/09/2026, passaram 30 testes de backend, 12 testes da fronteira
+Na revisão de 21/09/2026, passaram 32 testes de backend, 15 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
 de perfil e fluxos HTTP. O plugin cobre o cliente HTTP, a recusa de contexto sem
-idempotência e o conjunto esperado de 13 tools.
+idempotência e o conjunto esperado de 14 tools.
 
-## Execução real local — 20/09/2026
+## Execução real local — 21/09/2026
 
 Além da suíte automatizada, o ambiente local foi exercitado com PostgreSQL 16
 no Docker Compose:
@@ -46,15 +46,23 @@ no Docker Compose:
 - `docker compose config --quiet` passou;
 - backend, frontend e PostgreSQL foram reconstruídos e ficaram ativos; banco e
   API ficaram `healthy`, e o PostgreSQL aceitou as migrations Alembic;
-- Alembic confirmou `0003_financial_diagnostic (head)`;
-- as migrations `0001 -> 0003` também foram aplicadas em um banco temporário
+- Alembic confirmou `0004_whatsapp_verification (head)`;
+- as migrations `0001 -> 0004` também foram aplicadas em um banco temporário
   vazio e `alembic check` não encontrou drift entre ORM e schema;
 - o seed criou o usuário demo, contas, categorias, transações, orçamentos e
   meta;
 - login por cookie, `GET /api/v1/dashboard` e o relatório de seis meses
   responderam pelo container FastAPI;
-- readiness respondeu `ready`, OpenAPI expôs a versão 0.2.0 e 37 paths;
+- readiness respondeu `ready` somente depois de confirmar conexão e as 13 tabelas
+  financeiras obrigatórias, OpenAPI expôs a versão 0.2.0 e 37 paths;
 - `POST /integrations/whatsapp/link` vinculou um telefone de teste;
+- o acesso do agente a uma identidade não verificada retornou `403`;
+- a tela/API gerou um código expirável, o endpoint do agente confirmou o código
+  e o acesso financeiro passou a funcionar; desvincular e vincular novamente
+  voltou a exigir verificação;
+- quando executado dentro do Hermes, o cliente do agente usa o mapa LID↔telefone
+  do próprio bridge antes de enviar a identidade à API; fora do Hermes, mantém
+  um fallback sem dependência dessa instalação;
 - `create_transaction` persistiu `Gasolina` de `R$ 50,00` com
   `source=whatsapp`;
 - a mesma mensagem, com o mesmo ID externo, retornou `replayed=true` e o mesmo
@@ -68,7 +76,7 @@ no Docker Compose:
 - o frontend Next.js 16 em Compose iniciou em `:3000` e respondeu `200`;
 - lint, typecheck, build de produção e `npm audit` passaram, com zero
   vulnerabilidades reportadas nas dependências auditadas;
-- `hermes plugins doctor ./agent --ci` confirmou import, registro de 13 tools e
+- `hermes plugins doctor ./agent --ci` confirmou import, registro de 14 tools e
   um hook.
 
 ## Ciclo 3 — prontidão da integração local
@@ -123,7 +131,7 @@ código e testes automatizados:
 - o resumo aparece no diagnóstico concluído e em um card do dashboard;
 - não existe upload de documentos e nenhuma resposta cria transação, conta,
   orçamento ou meta automaticamente;
-- `make check` passou: 30 testes de backend, 9 do agente, 21 do frontend e
+- `make check` passou: 32 testes de backend, 15 do agente, 21 do frontend e
   build de produção do Next.js.
 
 A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite

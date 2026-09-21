@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -8,11 +8,24 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import AgentPrincipal, get_agent_principal
+from app.api.deps import (
+    AgentPrincipal,
+    get_agent_principal,
+    get_agent_verification_principal,
+)
 from app.core.config import get_settings
 from app.core.security import normalize_phone
 from app.db.session import get_db
-from app.models import Account, AgentMessage, Budget, Category, Transaction, Transfer, User
+from app.models import (
+    Account,
+    AgentMessage,
+    Budget,
+    Category,
+    Transaction,
+    Transfer,
+    User,
+    WhatsAppIdentity,
+)
 from app.schemas.agent import (
     AgentBudgetRequest,
     AgentGoalRequest,
@@ -20,6 +33,7 @@ from app.schemas.agent import (
     AgentTransactionRequest,
     AgentTransactionUpdateRequest,
     AgentTransferRequest,
+    AgentWhatsAppVerificationRequest,
 )
 from app.schemas.finance import GoalCreate, TransactionCreate, TransactionUpdate, TransferCreate
 from app.services.agent_audit import audited_agent_operation
@@ -42,6 +56,12 @@ from app.services.goals import create_goal
 
 router = APIRouter(prefix="/integrations/agent", tags=["agent"])
 settings = get_settings()
+MAX_VERIFICATION_ATTEMPTS = 5
+
+
+def _verification_digest(phone_e164: str, code: str) -> str:
+    value = f"{phone_e164}:{code}".encode()
+    return hmac.new(settings.agent_shared_secret.encode(), value, hashlib.sha256).hexdigest()
 
 
 def _account_by_name(db: Session, user: User, name: str | None) -> Account:
@@ -212,6 +232,58 @@ def register_inbound(
     db.add(message)
     db.commit()
     return {"duplicate": False, "message_id": message.id}
+
+
+@router.post("/verify-whatsapp")
+def verify_whatsapp(
+    payload: AgentWhatsAppVerificationRequest,
+    principal: AgentPrincipal = Depends(get_agent_verification_principal),
+    db: Session = Depends(get_db),
+):
+    identity = db.scalar(
+        select(WhatsAppIdentity).where(
+            WhatsAppIdentity.user_id == principal.user.id,
+            WhatsAppIdentity.phone_e164 == principal.sender_id,
+            WhatsAppIdentity.is_active.is_(True),
+        )
+    )
+    if not identity:
+        raise HTTPException(status_code=404, detail="Número WhatsApp não vinculado")
+    if identity.verified_at is not None:
+        return {"verified": True, "phone_e164": identity.phone_e164}
+    if not identity.verification_code_hash or not identity.verification_expires_at:
+        raise HTTPException(
+            status_code=409,
+            detail="Nenhum código de verificação ativo. Gere um novo código na aplicação.",
+        )
+    now = datetime.now(UTC)
+    expires_at = identity.verification_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at <= now:
+        identity.verification_code_hash = None
+        identity.verification_expires_at = None
+        identity.verification_attempts = 0
+        db.commit()
+        raise HTTPException(status_code=410, detail="Código de verificação expirado")
+    if identity.verification_attempts >= MAX_VERIFICATION_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Limite de tentativas atingido. Gere um novo código na aplicação.",
+        )
+
+    identity.verification_attempts += 1
+    expected = _verification_digest(identity.phone_e164, payload.code)
+    if not hmac.compare_digest(identity.verification_code_hash, expected):
+        db.commit()
+        raise HTTPException(status_code=400, detail="Código de verificação inválido")
+
+    identity.verified_at = now
+    identity.verification_code_hash = None
+    identity.verification_expires_at = None
+    identity.verification_attempts = 0
+    db.commit()
+    return {"verified": True, "phone_e164": identity.phone_e164}
 
 
 @router.post("/transactions")

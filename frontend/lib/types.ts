@@ -147,6 +147,13 @@ export type WhatsAppIdentity = {
   verified: boolean;
 };
 
+export type WhatsAppVerification = {
+  verified: false;
+  code: string;
+  expires_at: string;
+  instructions: string;
+};
+
 export type ApiErrorShape = {
   code?: string;
   message?: string;

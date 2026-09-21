@@ -62,8 +62,10 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
 
 ### P1 — segurança operacional
 
-1. Substituir o vínculo manual de telefone por um desafio de posse antes de
-   preencher `verified_at`.
+1. Desafio de posse implementado: código HMAC temporário, limite de tentativas,
+   expiração, bloqueio das tools financeiras enquanto pendente e revogação ao
+   desvincular. Ainda falta executar esse fluxo no WhatsApp real com um número
+   autorizado.
 2. Definir expiração/retenção para sessões e logs do agente, além de rotina de
    limpeza.
 3. Preparar backup/restore do PostgreSQL e validar restauração, não apenas o

@@ -14,6 +14,7 @@ import type {
   Transfer,
   User,
   WhatsAppIdentity,
+  WhatsAppVerification,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -130,5 +131,6 @@ export const api = {
   archiveGoal: (id: string) => request<{ message: string }>(`/goals/${id}`, json("DELETE")),
   whatsappIdentity: () => request<WhatsAppIdentity>("/integrations/whatsapp/identity"),
   linkWhatsApp: (phone_e164: string) => request<WhatsAppIdentity>("/integrations/whatsapp/link", json("POST", { phone_e164 })),
+  startWhatsAppVerification: () => request<WhatsAppVerification>("/integrations/whatsapp/verification/start", json("POST", {})),
   unlinkWhatsApp: () => request<{ linked: false }>("/integrations/whatsapp/link", json("DELETE")),
 };

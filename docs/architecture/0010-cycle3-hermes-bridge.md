@@ -19,6 +19,13 @@ mínima de 64.000 tokens para tool calling confiável.
 
 - O plugin em `agent/` registra somente tools HTTP e continua sem driver,
   credencial ou consulta direta ao PostgreSQL.
+- A identidade WhatsApp precisa estar verificada antes de qualquer tool
+  financeira. A única exceção é `verify_whatsapp`, que aceita o código curto,
+  expirável e limitado por tentativas emitido pela tela autenticada.
+- O cliente HTTP do plugin canonicaliza o remetente com o mapa LID↔telefone do
+  Hermes quando o adapter entrega um identificador `@lid`; o backend continua
+  aceitando apenas a identidade normalizada e nunca recebe um `user_id` vindo
+  do modelo.
 - O Hermes instalado é responsável pelo ciclo de conversa, pelo provider de
   modelo e pelo adapter Baileys. O adapter local `WhatsAppProvider` continua
   sendo uma fronteira de domínio para futuras implementações, não um segundo

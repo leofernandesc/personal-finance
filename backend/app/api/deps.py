@@ -53,12 +53,14 @@ class AgentPrincipal:
     message_id: str
 
 
-def get_agent_principal(
+def _resolve_agent_principal(
     db: Session = Depends(get_db),
     agent_token: str | None = Header(default=None, alias="X-Agent-Token"),
     provider: str = Header(default="whatsapp", alias="X-Agent-Provider"),
     sender_id: str | None = Header(default=None, alias="X-Agent-Sender-Id"),
     message_id: str | None = Header(default=None, alias="X-Agent-Message-Id"),
+    *,
+    require_verified: bool,
 ) -> AgentPrincipal:
     if not agent_token or not secure_equals(agent_token, settings.agent_shared_secret):
         raise HTTPException(
@@ -89,9 +91,55 @@ def get_agent_principal(
     user = db.get(User, identity.user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    if require_verified and identity.verified_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Número WhatsApp ainda não verificado",
+        )
     return AgentPrincipal(
         user=user,
         provider=provider,
         sender_id=normalized,
         message_id=message_id,
+    )
+
+
+def get_agent_principal(
+    db: Session = Depends(get_db),
+    agent_token: str | None = Header(default=None, alias="X-Agent-Token"),
+    provider: str = Header(default="whatsapp", alias="X-Agent-Provider"),
+    sender_id: str | None = Header(default=None, alias="X-Agent-Sender-Id"),
+    message_id: str | None = Header(default=None, alias="X-Agent-Message-Id"),
+) -> AgentPrincipal:
+    return _resolve_agent_principal(
+        db,
+        agent_token,
+        provider,
+        sender_id,
+        message_id,
+        require_verified=True,
+    )
+
+
+def get_agent_verification_principal(
+    db: Session = Depends(get_db),
+    agent_token: str | None = Header(default=None, alias="X-Agent-Token"),
+    provider: str = Header(default="whatsapp", alias="X-Agent-Provider"),
+    sender_id: str | None = Header(default=None, alias="X-Agent-Sender-Id"),
+    message_id: str | None = Header(default=None, alias="X-Agent-Message-Id"),
+) -> AgentPrincipal:
+    """Resolve a linked identity before verification for the code-only tool.
+
+    The only route using this dependency is the verification endpoint. It must
+    never be reused by financial tools because an unverified identity has not
+    proved possession of the number yet.
+    """
+
+    return _resolve_agent_principal(
+        db,
+        agent_token,
+        provider,
+        sender_id,
+        message_id,
+        require_verified=False,
     )

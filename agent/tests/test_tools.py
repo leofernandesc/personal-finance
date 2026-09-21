@@ -3,6 +3,7 @@ from agent.tools.http_tools import TOOLS
 
 def test_expected_finance_tools_are_exposed():
     assert {tool.name for tool in TOOLS} == {
+        "verify_whatsapp",
         "create_transaction",
         "update_transaction",
         "delete_transaction",

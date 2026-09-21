@@ -113,3 +113,7 @@ class AgentInboundRequest(APIModel):
 
 class AgentLinkRequest(APIModel):
     phone_e164: str = Field(min_length=8, max_length=32)
+
+
+class AgentWhatsAppVerificationRequest(APIModel):
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")

@@ -30,15 +30,16 @@ O `X-Agent-Message-Id` é a fronteira de idempotência. Nunca reutilize um ID pa
 representar duas mensagens distintas. O cliente recusa chamadas sem remetente
 ou ID externo para não abrir um caminho sem proteção contra reentrega.
 
-O vínculo feito pela interface web é intencionalmente manual no MVP local e não
-preenche `verified_at`. Antes de qualquer uso fora de desenvolvimento, adicione
-um desafio de posse do número no provider do canal.
+O vínculo feito pela interface web começa como pendente e não preenche
+`verified_at`. O usuário precisa gerar um código na tela de Integrações e
+enviá-lo pelo próprio WhatsApp; só então o backend libera as tools financeiras.
 
 ## Tools disponíveis
 
 O plugin registra as seguintes tools no toolset `personal_finance`:
 
 ```text
+verify_whatsapp
 create_transaction       update_transaction       delete_transaction
 create_transfer           get_accounts             get_categories
 get_transactions          get_balance              get_month_summary
@@ -46,8 +47,10 @@ get_category_summary      get_budget_status        create_budget
 create_goal
 ```
 
-As tools de leitura devolvem dados calculados pela API. As tools de mutação não
-aceitam SQL, `user_id` ou IDs de conta/categoria inventados pelo prompt. Para
+As tools de leitura devolvem dados calculados pela API. A tool
+`verify_whatsapp` é a única que pode resolver uma identidade ainda não
+verificada e só aceita o código temporário gerado pela tela de Integrações. As
+tools de mutação não aceitam SQL, `user_id` ou IDs de conta/categoria inventados pelo prompt. Para
 operações por nome, o backend resolve a entidade do próprio usuário e retorna
 as opções existentes em caso de ambiguidade.
 

@@ -50,6 +50,17 @@ RELATIVE_DATE = {
 
 TOOLS = [
     BackendTool(
+        "verify_whatsapp",
+        _schema(
+            "verify_whatsapp",
+            "Confirma a posse de um número WhatsApp usando o código exibido na aplicação web.",
+            {"code": {"type": "string", "pattern": "^[0-9]{6}$"}},
+            ["code"],
+        ),
+        "POST",
+        "verify-whatsapp",
+    ),
+    BackendTool(
         "create_transaction",
         _schema(
             "create_transaction",

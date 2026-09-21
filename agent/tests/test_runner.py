@@ -26,6 +26,16 @@ def test_normalize_intent_requires_category_summary_for_category_question():
         )
 
 
+def test_normalize_intent_accepts_only_six_digit_whatsapp_code():
+    assert (
+        _normalize_intent(
+            {"tool": "verify_whatsapp", "verification_code": "123456"},
+            "123456",
+        )["verification_code"]
+        == "123456"
+    )
+
+
 @pytest.mark.parametrize(
     "intent",
     [

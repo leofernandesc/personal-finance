@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
+from app.core.config import get_settings
 from app.db.base import Base
-from app.main import app
+from app.main import REQUIRED_SCHEMA_TABLES, app
 
 
 @pytest.fixture
@@ -44,6 +45,19 @@ def register(client: TestClient, email: str) -> None:
         },
     )
     assert response.status_code == 201, response.text
+
+
+def test_readiness_requires_the_financial_schema(clients):
+    first, _second = clients
+
+    response = first.get("/ready")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "status": "ready",
+        "service": "personal-finance-api",
+    }
+    assert "financial_diagnostics" in REQUIRED_SCHEMA_TABLES
 
 
 def create_account(client: TestClient, name: str) -> dict:
@@ -183,6 +197,54 @@ def test_linking_a_new_whatsapp_number_replaces_the_previous_active_link(clients
         "phone_e164": "+5592999990002",
         "verified": False,
     }
+
+
+def test_whatsapp_agent_requires_possession_verification(clients):
+    first, _second = clients
+    register(first, "whatsapp-verification@example.com")
+    phone = "+5592999990003"
+    linked = first.post(
+        "/api/v1/integrations/whatsapp/link",
+        json={"phone_e164": phone},
+    )
+    assert linked.status_code == 201
+
+    headers = {
+        "X-Agent-Token": get_settings().agent_shared_secret,
+        "X-Agent-Provider": "whatsapp",
+        "X-Agent-Sender-Id": phone,
+        "X-Agent-Message-Id": "verification-before-1",
+    }
+    blocked = first.get("/api/v1/integrations/agent/balance", headers=headers)
+    assert blocked.status_code == 403
+    assert blocked.json()["detail"] == "Número WhatsApp ainda não verificado"
+
+    challenge = first.post("/api/v1/integrations/whatsapp/verification/start")
+    assert challenge.status_code == 200, challenge.text
+    code = challenge.json()["code"]
+
+    verified = first.post(
+        "/api/v1/integrations/agent/verify-whatsapp",
+        headers={**headers, "X-Agent-Message-Id": "verification-code-1"},
+        json={"code": code},
+    )
+    assert verified.status_code == 200, verified.text
+    assert verified.json() == {"verified": True, "phone_e164": phone}
+
+    allowed = first.get(
+        "/api/v1/integrations/agent/balance",
+        headers={**headers, "X-Agent-Message-Id": "balance-after-verification-1"},
+    )
+    assert allowed.status_code == 200, allowed.text
+
+    unlinked = first.delete("/api/v1/integrations/whatsapp/link")
+    assert unlinked.status_code == 200
+    relinked = first.post(
+        "/api/v1/integrations/whatsapp/link",
+        json={"phone_e164": phone},
+    )
+    assert relinked.status_code == 201
+    assert relinked.json()["verified"] is False
 
 
 def diagnostic_answers(**overrides) -> dict:

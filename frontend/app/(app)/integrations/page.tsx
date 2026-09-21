@@ -5,22 +5,190 @@ import { Check, MessageCircle, Phone, PlugZap, ShieldCheck, Unplug } from "lucid
 import { ErrorState, LoadingState, PageHeader } from "@/components/page";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, Input, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { WhatsAppIdentity } from "@/lib/types";
+import type { WhatsAppIdentity, WhatsAppVerification } from "@/lib/types";
 
 export default function IntegrationsPage() {
   const [identity, setIdentity] = useState<WhatsAppIdentity | null>(null);
+  const [verification, setVerification] = useState<WhatsAppVerification | null>(null);
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const load = useCallback(async () => { setLoading(true); setError(null); try { setIdentity(await api.whatsappIdentity()); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível carregar as integrações."); } finally { setLoading(false); } }, []);
-  useEffect(() => { void load(); }, [load]);
-  const link = async () => { setSaving(true); setError(null); try { if (!phone.trim()) throw new Error("Informe o número com DDD."); setIdentity(await api.linkWhatsApp(phone)); setPhone(""); window.dispatchEvent(new Event("whatsapp-identity-changed")); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível vincular o WhatsApp."); } finally { setSaving(false); } };
-  const unlink = async () => { if (!window.confirm("Desvincular este número do seu espaço?")) return; setSaving(true); try { await api.unlinkWhatsApp(); setIdentity({ linked: false, phone_e164: null, verified: false }); window.dispatchEvent(new Event("whatsapp-identity-changed")); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível desvincular."); } finally { setSaving(false); } };
-  return <>
-    <PageHeader eyebrow="Conecte o que já faz parte da sua rotina" title="Integrações" description="Registre movimentos e consulte seu mês por conversa, de um jeito simples e seguro." />
-    {loading ? <LoadingState label="Verificando conexões" /> : error && !identity ? <ErrorState message={error} onRetry={() => void load()} /> : <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]"><Card className="overflow-hidden"><CardHeader><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#dcf8e8] text-[#287853]"><MessageCircle size={22} /></span><div><CardTitle>WhatsApp</CardTitle><CardDescription>Registre e consulte sua vida financeira por mensagem</CardDescription></div></div><Badge tone={identity?.linked ? "whatsapp" : "neutral"}>{identity?.linked ? "Número vinculado" : "Sem vínculo"}</Badge></CardHeader><div className="px-5 pb-6 md:px-6">{identity?.linked ? <div className="rounded-2xl border border-[#b8e8ca] bg-[#f3fcf6] p-5"><div className="flex items-start gap-3"><div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#dcf8e8] text-[#287853]"><Check size={16} /></div><div className="flex-1"><p className="text-sm font-semibold text-ink">Número vinculado</p><p className="mt-1 text-sm text-muted">{identity.phone_e164}</p><p className="mt-3 text-xs leading-5 text-muted">Esse vínculo indica em qual espaço suas mensagens devem aparecer. A conexão do WhatsApp é ativada separadamente.</p></div></div><Button variant="secondary" size="small" className="mt-5" onClick={() => void unlink()} disabled={saving}><Unplug size={14} /> Desvincular</Button></div> : <><p className="text-sm leading-6 text-muted">Vincule seu número para que mensagens como <span className="font-semibold text-ink">“Gastei 42 reais no almoço.”</span> cheguem ao seu espaço financeiro certo.</p><div className="mt-5 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Phone size={16} className="pointer-events-none absolute left-3 top-3.5 text-muted" /><Input aria-label="Número do WhatsApp" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+55 92 99999-9999" className="pl-9" /></div><Button className="w-full sm:w-auto" onClick={() => void link()} disabled={saving}>{saving ? <Spinner /> : <PlugZap size={16} />} Vincular número</Button></div><p className="mt-3 text-xs text-muted">Use o formato internacional. Neste momento, o vínculo é feito manualmente; a conexão completa do canal acontece em uma etapa separada.</p></>}{error && <p role="alert" className="mt-4 text-sm text-rust">{error}</p>}</div></Card><Card className="overflow-hidden"><CardHeader><div><p className="eyebrow">Como funciona</p><CardTitle className="mt-1">Conversas com segurança</CardTitle></div><ShieldCheck size={20} className="text-moss" /></CardHeader><div className="space-y-5 px-5 pb-6 md:px-6"><Step number="01" title="Você envia" text="Uma mensagem natural chega pelo WhatsApp." /><Step number="02" title="A mensagem é entendida" text="O sistema transforma sua conversa em uma operação clara." /><Step number="03" title="Tudo é conferido" text="Valores, contas e categorias são verificados antes do registro." /><Step number="04" title="Você acompanha" text="O resultado aparece no dashboard e pode ser consultado de novo." /></div></Card></div>}
-  </>;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setIdentity(await api.whatsappIdentity());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível carregar as integrações.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const link = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      if (!phone.trim()) throw new Error("Informe o número com DDD.");
+      setIdentity(await api.linkWhatsApp(phone));
+      setVerification(null);
+      setPhone("");
+      window.dispatchEvent(new Event("whatsapp-identity-changed"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível vincular o WhatsApp.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startVerification = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      setVerification(await api.startWhatsAppVerification());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível gerar o código.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const unlink = async () => {
+    if (!window.confirm("Desvincular este número do seu espaço?")) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.unlinkWhatsApp();
+      setIdentity({ linked: false, phone_e164: null, verified: false });
+      setVerification(null);
+      window.dispatchEvent(new Event("whatsapp-identity-changed"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível desvincular.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Conecte o que já faz parte da sua rotina"
+        title="Integrações"
+        description="Registre e consulte sua vida financeira por mensagem, de um jeito simples e seguro."
+      />
+      {loading ? (
+        <LoadingState label="Verificando conexões" />
+      ) : error && !identity ? (
+        <ErrorState message={error} onRetry={() => void load()} />
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#dcf8e8] text-[#287853]">
+                  <MessageCircle size={22} />
+                </span>
+                <div>
+                  <CardTitle>WhatsApp</CardTitle>
+                  <CardDescription>Registre e consulte sua vida financeira por mensagem</CardDescription>
+                </div>
+              </div>
+              <Badge tone={identity?.verified ? "whatsapp" : identity?.linked ? "warning" : "neutral"}>
+                {identity?.verified ? "Número verificado" : identity?.linked ? "Verificação pendente" : "Sem vínculo"}
+              </Badge>
+            </CardHeader>
+            <div className="px-5 pb-6 md:px-6">
+              {identity?.linked ? (
+                <div className="rounded-2xl border border-[#b8e8ca] bg-[#f3fcf6] p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#dcf8e8] text-[#287853]">
+                      <Check size={16} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-ink">Número vinculado</p>
+                      <p className="mt-1 text-sm text-muted">{identity.phone_e164}</p>
+                      {identity.verified ? (
+                        <p className="mt-3 text-xs leading-5 text-muted">
+                          A posse do número foi confirmada. Suas mensagens podem consultar e registrar movimentos.
+                        </p>
+                      ) : (
+                        <div className="mt-4 space-y-3">
+                          <p className="text-xs leading-5 text-muted">
+                            Gere um código e envie-o pelo próprio WhatsApp vinculado. Assim confirmamos que o número realmente pertence a você.
+                          </p>
+                          <Button variant="secondary" size="small" onClick={() => void startVerification()} disabled={saving}>
+                            {saving ? <Spinner /> : <ShieldCheck size={14} />} Gerar código de verificação
+                          </Button>
+                          {verification && (
+                            <div className="rounded-xl border border-brand-pink/40 bg-white p-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-brown">Envie este código pelo WhatsApp</p>
+                              <p className="mt-2 font-mono text-2xl font-bold tracking-[0.28em] text-navy">{verification.code}</p>
+                              <p className="mt-2 text-xs leading-5 text-muted">O código expira em 10 minutos. Não o compartilhe com outra pessoa.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button variant="secondary" size="small" className="mt-5" onClick={() => void unlink()} disabled={saving}>
+                    <Unplug size={14} /> Desvincular
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm leading-6 text-muted">
+                    Vincule seu número para que mensagens como <span className="font-semibold text-ink">“Gastei 42 reais no almoço.”</span> cheguem ao seu espaço financeiro certo.
+                  </p>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <div className="relative flex-1">
+                      <Phone size={16} className="pointer-events-none absolute left-3 top-3.5 text-muted" />
+                      <Input aria-label="Número do WhatsApp" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+55 92 99999-9999" className="pl-9" />
+                    </div>
+                    <Button className="w-full sm:w-auto" onClick={() => void link()} disabled={saving}>
+                      {saving ? <Spinner /> : <PlugZap size={16} />} Vincular número
+                    </Button>
+                  </div>
+                  <p className="mt-3 text-xs text-muted">Use o formato internacional. Depois do vínculo, confirme a posse pelo código de verificação.</p>
+                </>
+              )}
+              {error && <p role="alert" className="mt-4 text-sm text-rust">{error}</p>}
+            </div>
+          </Card>
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div>
+                <p className="eyebrow">Como funciona</p>
+                <CardTitle className="mt-1">Conversas com segurança</CardTitle>
+              </div>
+              <ShieldCheck size={20} className="text-moss" />
+            </CardHeader>
+            <div className="space-y-5 px-5 pb-6 md:px-6">
+              <Step number="01" title="Você envia" text="Uma mensagem natural chega pelo WhatsApp." />
+              <Step number="02" title="Você confirma" text="Um código confirma que o número pertence a você." />
+              <Step number="03" title="A mensagem é entendida" text="O sistema transforma sua conversa em uma operação clara." />
+              <Step number="04" title="Você acompanha" text="O resultado aparece no dashboard e pode ser consultado de novo." />
+            </div>
+          </Card>
+        </div>
+      )}
+    </>
+  );
 }
 
-function Step({ number, title, text }: { number: string; title: string; text: string }) { return <div className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-paper text-[0.65rem] font-bold text-navy">{number}</span><div><p className="text-sm font-semibold text-ink">{title}</p><p className="mt-1 text-sm leading-5 text-muted">{text}</p></div></div>; }
+function Step({ number, title, text }: { number: string; title: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-paper text-[0.65rem] font-bold text-navy">{number}</span>
+      <div>
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <p className="mt-1 text-sm leading-5 text-muted">{text}</p>
+      </div>
+    </div>
+  );
+}

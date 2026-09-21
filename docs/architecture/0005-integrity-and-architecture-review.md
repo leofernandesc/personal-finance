@@ -32,6 +32,10 @@ comportado.
 Pydantic continua fornecendo erros rápidos e amigáveis; as constraints são a
 última linha de defesa, não uma substituição da camada de serviço.
 
+O endpoint `/ready` também verifica a presença das tabelas financeiras
+obrigatórias. Assim, o healthcheck do Compose não promove uma API com conexão
+ao PostgreSQL, mas schema incompleto, a estado saudável.
+
 ### Proveniência e idempotência
 
 O endpoint web força `source=web` e o endpoint interno força

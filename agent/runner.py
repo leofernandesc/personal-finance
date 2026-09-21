@@ -23,6 +23,7 @@ INTENT_SCHEMA = {
         "tool": {
             "type": "string",
             "enum": [
+                "verify_whatsapp",
                 "create_transaction",
                 "create_transfer",
                 "get_month_summary",
@@ -50,6 +51,10 @@ INTENT_SCHEMA = {
         "relative_date": {
             "type": "string",
             "enum": ["today", "yesterday", "tomorrow"],
+        },
+        "verification_code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
         },
     },
     "required": ["tool"],
@@ -167,7 +172,14 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
         raise RuntimeError(
             "A mensagem informou uma conta, mas a intenção não a extraiu"
         )
-    if tool == "create_transaction":
+    if tool == "verify_whatsapp":
+        code = normalized.get("verification_code") or normalized.get("code")
+        if not isinstance(code, str) or not re.fullmatch(r"\d{6}", code):
+            raise RuntimeError(
+                "A verificação do WhatsApp precisa de um código de seis dígitos"
+            )
+        normalized["verification_code"] = code
+    elif tool == "create_transaction":
         if normalized.get("type") not in {"income", "expense"}:
             raise RuntimeError("A intenção de transação não informou income ou expense")
         amount = normalized.get("amount")
@@ -216,6 +228,13 @@ def dispatch(intent: dict, context: AgentContext) -> str:
         )
     if tool == "get_transactions":
         return client.call("GET", "transactions", context=context)
+    if tool == "verify_whatsapp":
+        return client.call(
+            "POST",
+            "verify-whatsapp",
+            {"code": intent.get("verification_code")},
+            context=context,
+        )
     raise ValueError(f"Tool não permitida no runner: {tool}")
 
 

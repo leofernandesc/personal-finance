@@ -119,11 +119,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("whatsapp-identity-changed", loadIdentity);
   }, [user]);
 
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [loading, router, user]);
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-paper"><div className="h-8 w-8 animate-spin rounded-full border-2 border-navy border-t-transparent" /></div>;
   }
   if (!user) {
-    if (typeof window !== "undefined") router.replace("/login");
     return null;
   }
 

@@ -82,7 +82,9 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
    transferência, orçamento, meta e dashboard foram adicionados e passaram em
    Firefox desktop e mobile; o workflow de CI também os executa em uma stack
    temporária.
-2. Fazer auditoria manual de teclado, foco, leitor de tela e contraste.
+2. Scan automatizado com axe foi adicionado para login e cadastro em desktop e
+   mobile. Ainda falta a auditoria manual de teclado, foco, leitor de tela e
+   contraste, incluindo as telas autenticadas.
 3. Paginação por cursor implementada no histórico da API e no botão “Carregar
    mais” do frontend; o fluxo principal de histórico continua coberto por
    E2E, enquanto falta uma cobertura dedicada de múltiplas páginas.

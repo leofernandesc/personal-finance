@@ -487,7 +487,9 @@ despesa, transferência, edição atômica da transferência, orçamento, meta e
 dashboard em duas viewports. Os dados de teste ficam no banco local; use um
 banco de desenvolvimento separado quando a execução não for descartável. O
 workflow do GitHub sobe uma stack temporária e instala o Firefox antes de
-executar o mesmo comando.
+executar o mesmo comando. O mesmo conjunto também verifica automaticamente
+login e cadastro com axe; isso não substitui a auditoria manual de teclado,
+foco e leitor de tela.
 
 Na raiz, `make check` reúne os checks do backend, agente e frontend. O workflow
 de CI repete essas verificações, aplica migrations em PostgreSQL 16 e usa

@@ -100,6 +100,8 @@ O E2E de navegador também passou localmente em 21/09/2026:
   meta, e confirmou o saldo no dashboard;
 - o preflight CORS para `PUT /diagnostic/draft` passou, evitando regressão no
   salvamento do diagnóstico pelo navegador;
+- as páginas públicas `/login` e `/register` passaram o scan WCAG 2A/2AA do
+  axe nos projetos desktop e mobile;
 - o workflow de CI repete o cenário em uma stack Compose temporária e remove
   seus volumes ao terminar.
 

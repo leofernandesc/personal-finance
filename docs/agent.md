@@ -170,6 +170,9 @@ export WHATSAPP_ALLOWED_USERS=+5592XXXXXXXXX
 O `make cycle3-ready` permanece em warning enquanto essa variável não existir,
 mesmo que a sessão Baileys esteja conectada. Ele também exige
 `WHATSAPP_MODE=bot` e rejeita `WHATSAPP_ALLOWED_USERS=*` no aceite.
+Quando o bridge está em `127.0.0.1`, o preflight também confere o `--mode` do
+processo local para não aceitar um gateway em `self-chat` apenas porque as
+variáveis de ambiente dizem `bot`. Nenhum conteúdo de `creds.json` é lido.
 
 ## Smoke runner
 

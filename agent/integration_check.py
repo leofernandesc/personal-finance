@@ -18,6 +18,7 @@ import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 MIN_HERMES_CONTEXT_LENGTH = 64_000
 E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
@@ -138,6 +139,7 @@ def check_whatsapp(
     bridge_url: str,
     allowed_users: str | None,
     mode: str | None = None,
+    observed_bridge_mode: str | None = None,
 ) -> Check:
     creds = session_dir / "creds.json"
     if not creds.exists():
@@ -150,6 +152,16 @@ def check_whatsapp(
         )
     if health.get("status") != "connected":
         return Check("whatsapp", "warn", f"bridge em estado {health.get('status')!r}")
+    reported_mode = health.get("mode")
+    if isinstance(reported_mode, str) and reported_mode.strip():
+        observed_bridge_mode = reported_mode.strip().lower()
+    if observed_bridge_mode is not None and observed_bridge_mode != "bot":
+        detail = observed_bridge_mode or "desconhecido"
+        return Check(
+            "whatsapp",
+            "warn",
+            f"processo do bridge está em modo {detail!r}; aceite exige modo bot",
+        )
     entries = {
         entry.strip() for entry in (allowed_users or "").split(",") if entry.strip()
     }
@@ -182,11 +194,40 @@ def check_whatsapp(
     return Check("whatsapp", "ok", "sessão Baileys conectada")
 
 
+def _observe_local_bridge_mode(bridge_url: str) -> str | None:
+    """Read only the mode of a local Hermes bridge process, if observable."""
+
+    parsed = urlparse(bridge_url)
+    if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        return None
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        result = subprocess.run(
+            ["ps", "-eo", "args="],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    port_marker = f"--port {port}"
+    for command_line in result.stdout.splitlines():
+        if "whatsapp-bridge" not in command_line or port_marker not in command_line:
+            continue
+        match = re.search(r"(?:^|\s)--mode\s+(\S+)", command_line)
+        return match.group(1).strip().lower() if match else ""
+    return None
+
+
 def run_checks(repo_root: Path) -> list[Check]:
     backend_url = os.getenv("PERSONAL_FINANCE_BACKEND_URL", "http://127.0.0.1:8000")
     ollama_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
     # Keep the gateway model independent from the smaller smoke-runner model.
     model = os.getenv("HERMES_OLLAMA_MODEL", "llama3.2:3b")
+    bridge_url = os.getenv("HERMES_WHATSAPP_BRIDGE_URL", "http://127.0.0.1:3300")
     configured_session = os.getenv("HERMES_WHATSAPP_SESSION")
     if configured_session:
         session_dir = Path(configured_session).expanduser()
@@ -206,10 +247,11 @@ def run_checks(repo_root: Path) -> list[Check]:
         check_hermes(repo_root),
         check_whatsapp(
             session_dir,
-            os.getenv("HERMES_WHATSAPP_BRIDGE_URL", "http://127.0.0.1:3300"),
+            bridge_url,
             os.getenv("WHATSAPP_ALLOWED_USERS")
             or os.getenv("HERMES_WHATSAPP_ALLOWED_USERS"),
             os.getenv("WHATSAPP_MODE"),
+            _observe_local_bridge_mode(bridge_url),
         ),
     ]
 

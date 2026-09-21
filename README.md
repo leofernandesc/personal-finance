@@ -522,6 +522,8 @@ vazios, loading, erro e feedback de salvamento.
   estratégia de E2E web, isolamento e cobertura responsiva.
 - [`docs/architecture/0016-maintenance-scheduler.md`](docs/architecture/0016-maintenance-scheduler.md):
   scheduler opcional e explícito para retenção operacional.
+- [`docs/architecture/0017-cycle3-readiness.md`](docs/architecture/0017-cycle3-readiness.md):
+  verificação do modo efetivo do bridge antes do aceite do WhatsApp.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

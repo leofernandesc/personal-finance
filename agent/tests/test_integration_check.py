@@ -83,3 +83,36 @@ def test_whatsapp_accepts_bot_with_specific_allowlist(tmp_path, monkeypatch):
     )
 
     assert result.status == "ok"
+
+
+def test_whatsapp_rejects_a_connected_self_chat_process(tmp_path, monkeypatch):
+    (tmp_path / "creds.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "agent.integration_check._get_json",
+        lambda _url: {"status": "connected"},
+    )
+
+    result = check_whatsapp(
+        Path(tmp_path),
+        "http://127.0.0.1:3300",
+        "+5592999999999",
+        mode="bot",
+        observed_bridge_mode="self-chat",
+    )
+
+    assert result.status == "warn"
+    assert "self-chat" in result.detail
+
+
+def test_local_bridge_mode_reads_only_the_process_mode(monkeypatch):
+    class Result:
+        stdout = "node whatsapp-bridge/bridge.js --port 3300 --mode self-chat --session /private"
+
+    monkeypatch.setattr(
+        "agent.integration_check.subprocess.run",
+        lambda *args, **kwargs: Result(),
+    )
+
+    from agent.integration_check import _observe_local_bridge_mode
+
+    assert _observe_local_bridge_mode("http://127.0.0.1:3300") == "self-chat"

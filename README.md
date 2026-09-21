@@ -490,6 +490,10 @@ vazios, loading, erro e feedback de salvamento.
   diagnóstico inicial, rascunho, consentimentos e edição posterior.
 - [`docs/architecture/0009-diagnostic-v1.1.md`](docs/architecture/0009-diagnostic-v1.1.md):
   validação condicional, resumo determinístico, perfil e limites do MVP.
+- [`docs/architecture/0013-atomic-transfer-edits.md`](docs/architecture/0013-atomic-transfer-edits.md):
+  edição atômica das duas pernas de uma transferência.
+- [`docs/architecture/0014-cursor-pagination.md`](docs/architecture/0014-cursor-pagination.md):
+  paginação estável do histórico sem offset.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

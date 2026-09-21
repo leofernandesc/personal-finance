@@ -1,12 +1,16 @@
+import base64
+import binascii
+import json
 import unicodedata
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -24,6 +28,21 @@ from app.schemas.finance import (
 )
 
 CENT = Decimal("0.01")
+
+
+@dataclass(frozen=True, slots=True)
+class TransactionPage:
+    items: list[Transaction]
+    next_cursor: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class _TransactionCursor:
+    sort: TransactionSort
+    transaction_date: date
+    created_at: datetime
+    amount: Decimal
+    transaction_id: UUID
 
 
 def normalized_name(value: str) -> str:
@@ -497,9 +516,8 @@ def transaction_query(user_id: UUID) -> Select:
     )
 
 
-def list_transactions(
-    db: Session,
-    user: User,
+def _apply_transaction_filters(
+    query: Select,
     *,
     start: date | None = None,
     end: date | None = None,
@@ -508,10 +526,7 @@ def list_transactions(
     category_id: UUID | None = None,
     source: str | None = None,
     search: str | None = None,
-    sort: TransactionSort = "date_desc",
-    limit: int = 100,
-) -> list[Transaction]:
-    query = transaction_query(user.id)
+) -> Select:
     if start:
         query = query.where(Transaction.transaction_date >= start)
     if end:
@@ -528,13 +543,185 @@ def list_transactions(
         query = query.where(Transaction.source == source)
     if search:
         query = query.where(Transaction.description.ilike(f"%{search}%"))
-    ordering = {
-        "date_desc": (Transaction.transaction_date.desc(), Transaction.created_at.desc()),
-        "date_asc": (Transaction.transaction_date.asc(), Transaction.created_at.asc()),
-        "amount_desc": (Transaction.amount.desc(), Transaction.transaction_date.desc()),
-        "amount_asc": (Transaction.amount.asc(), Transaction.transaction_date.desc()),
+    return query
+
+
+def _transaction_ordering(sort: TransactionSort):
+    return {
+        "date_desc": (
+            Transaction.transaction_date.desc(),
+            Transaction.created_at.desc(),
+            Transaction.id.desc(),
+        ),
+        "date_asc": (
+            Transaction.transaction_date.asc(),
+            Transaction.created_at.asc(),
+            Transaction.id.asc(),
+        ),
+        "amount_desc": (
+            Transaction.amount.desc(),
+            Transaction.transaction_date.desc(),
+            Transaction.created_at.desc(),
+            Transaction.id.desc(),
+        ),
+        "amount_asc": (
+            Transaction.amount.asc(),
+            Transaction.transaction_date.desc(),
+            Transaction.created_at.desc(),
+            Transaction.id.desc(),
+        ),
     }[sort]
-    return list(db.scalars(query.order_by(*ordering).limit(limit)))
+
+
+def _transaction_cursor_condition(cursor: _TransactionCursor):
+    same_date = Transaction.transaction_date == cursor.transaction_date
+    same_created = Transaction.created_at == cursor.created_at
+    same_amount = Transaction.amount == cursor.amount
+    if cursor.sort == "date_desc":
+        return or_(
+            Transaction.transaction_date < cursor.transaction_date,
+            and_(same_date, Transaction.created_at < cursor.created_at),
+            and_(same_date, same_created, Transaction.id < cursor.transaction_id),
+        )
+    if cursor.sort == "date_asc":
+        return or_(
+            Transaction.transaction_date > cursor.transaction_date,
+            and_(same_date, Transaction.created_at > cursor.created_at),
+            and_(same_date, same_created, Transaction.id > cursor.transaction_id),
+        )
+    if cursor.sort == "amount_desc":
+        return or_(
+            Transaction.amount < cursor.amount,
+            and_(same_amount, Transaction.transaction_date < cursor.transaction_date),
+            and_(same_amount, same_date, Transaction.created_at < cursor.created_at),
+            and_(same_amount, same_date, same_created, Transaction.id < cursor.transaction_id),
+        )
+    return or_(
+        Transaction.amount > cursor.amount,
+        and_(same_amount, Transaction.transaction_date < cursor.transaction_date),
+        and_(same_amount, same_date, Transaction.created_at < cursor.created_at),
+        and_(same_amount, same_date, same_created, Transaction.id < cursor.transaction_id),
+    )
+
+
+def _encode_transaction_cursor(transaction: Transaction, sort: TransactionSort) -> str:
+    created_at = transaction.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+    payload = {
+        "sort": sort,
+        "date": transaction.transaction_date.isoformat(),
+        "created_at": created_at.astimezone(UTC).isoformat(),
+        "amount": str(money(transaction.amount)),
+        "id": str(transaction.id),
+    }
+    encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(encoded).decode("ascii").rstrip("=")
+
+
+def _decode_transaction_cursor(value: str, sort: TransactionSort) -> _TransactionCursor:
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+        cursor = _TransactionCursor(
+            sort=payload["sort"],
+            transaction_date=date.fromisoformat(payload["date"]),
+            created_at=datetime.fromisoformat(payload["created_at"]),
+            amount=money(Decimal(payload["amount"])),
+            transaction_id=UUID(payload["id"]),
+        )
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        InvalidOperation,
+        UnicodeError,
+        json.JSONDecodeError,
+        binascii.Error,
+    ) as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Cursor de transações inválido",
+        ) from error
+    if cursor.sort != sort:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="O cursor pertence a outra ordenação",
+        )
+    if cursor.created_at.tzinfo is None:
+        cursor = _TransactionCursor(
+            sort=cursor.sort,
+            transaction_date=cursor.transaction_date,
+            created_at=cursor.created_at.replace(tzinfo=UTC),
+            amount=cursor.amount,
+            transaction_id=cursor.transaction_id,
+        )
+    return cursor
+
+
+def list_transaction_page(
+    db: Session,
+    user: User,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    transaction_type: str | None = None,
+    account_id: UUID | None = None,
+    category_id: UUID | None = None,
+    source: str | None = None,
+    search: str | None = None,
+    sort: TransactionSort = "date_desc",
+    limit: int = 100,
+    cursor: str | None = None,
+) -> TransactionPage:
+    query = _apply_transaction_filters(
+        transaction_query(user.id),
+        start=start,
+        end=end,
+        transaction_type=transaction_type,
+        account_id=account_id,
+        category_id=category_id,
+        source=source,
+        search=search,
+    )
+    if cursor:
+        query = query.where(_transaction_cursor_condition(_decode_transaction_cursor(cursor, sort)))
+    rows = list(db.scalars(query.order_by(*_transaction_ordering(sort)).limit(limit + 1)))
+    has_more = len(rows) > limit
+    items = rows[:limit]
+    next_cursor = _encode_transaction_cursor(items[-1], sort) if has_more else None
+    return TransactionPage(items=items, next_cursor=next_cursor)
+
+
+def list_transactions(
+    db: Session,
+    user: User,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    transaction_type: str | None = None,
+    account_id: UUID | None = None,
+    category_id: UUID | None = None,
+    source: str | None = None,
+    search: str | None = None,
+    sort: TransactionSort = "date_desc",
+    limit: int = 100,
+) -> list[Transaction]:
+    return list(
+        list_transaction_page(
+            db,
+            user,
+            start=start,
+            end=end,
+            transaction_type=transaction_type,
+            account_id=account_id,
+            category_id=category_id,
+            source=source,
+            search=search,
+            sort=sort,
+            limit=limit,
+        ).items
+    )
 
 
 def update_transaction(

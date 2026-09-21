@@ -47,6 +47,7 @@ from app.services.finance import (
     create_transfer,
     dashboard_data,
     ensure_account,
+    list_transaction_page,
     list_transactions,
     monthly_evolution,
     totals_for_period,
@@ -180,6 +181,51 @@ def test_update_transfer_changes_both_legs_atomically(db):
     assert all(leg.description == "Rebalanceamento" for leg in legs)
     assert balance_for_account(db, nubank) == Decimal("1350.00")
     assert balance_for_account(db, inter) == Decimal("-250.00")
+
+
+def test_transaction_cursor_pages_stably_without_duplicates(db):
+    user, account, _destination, food, _salary = setup_finances(db)
+    created = []
+    for index in range(3):
+        created.append(
+            create_transaction(
+                db,
+                user,
+                TransactionCreate(
+                    account_id=account.id,
+                    category_id=food.id,
+                    type="expense",
+                    amount=Decimal("10.00") + index,
+                    description=f"Movimento {index}",
+                    transaction_date=date(2026, 9, 20),
+                ),
+            )
+        )
+    fixed_created_at = datetime(2026, 9, 20, 12, tzinfo=UTC)
+    for transaction in created:
+        transaction.created_at = fixed_created_at
+    db.commit()
+
+    first_page = list_transaction_page(db, user, limit=2)
+    second_page = list_transaction_page(
+        db,
+        user,
+        limit=2,
+        cursor=first_page.next_cursor,
+    )
+
+    first_ids = [transaction.id for transaction in first_page.items]
+    second_ids = [transaction.id for transaction in second_page.items]
+    assert first_page.next_cursor
+    assert second_page.next_cursor is None
+    assert len(first_ids) == 2
+    assert len(second_ids) == 1
+    assert set(first_ids).isdisjoint(second_ids)
+    assert set(first_ids + second_ids) == {transaction.id for transaction in created}
+
+    with pytest.raises(HTTPException) as invalid_cursor:
+        list_transaction_page(db, user, cursor="not-a-cursor")
+    assert invalid_cursor.value.status_code == 422
 
 
 def test_budget_reports_spend_remaining_and_excess(db):

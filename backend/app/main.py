@@ -24,6 +24,7 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    expose_headers=["X-Next-Cursor"],
     allow_headers=[
         "Content-Type",
         "X-Agent-Token",

@@ -17,7 +17,7 @@ import { TransactionEditor } from "@/components/transaction-editor";
 import { TransferEditor } from "@/components/transfer-editor";
 import { EmptyState, ErrorState, LoadingState, PageHeader, SearchEmpty } from "@/components/page";
 import { TransactionSource } from "@/components/transaction-list";
-import { Button, Card, Input, Select } from "@/components/ui";
+import { Button, Card, Input, Select, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 import type {
   Account,
@@ -62,6 +62,8 @@ export default function TransactionsPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"transaction" | "transfer" | null>(
     searchParams.get("new") === "1" ? "transaction" : null,
@@ -72,8 +74,9 @@ export default function TransactionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNextCursor(null);
     try {
-      const [items, accountItems, categoryItems, transferItems] = await Promise.all([
+      const [transactionPage, accountItems, categoryItems, transferItems] = await Promise.all([
         api.transactions({
           search: filters.search || undefined,
           start: filters.start || undefined,
@@ -88,16 +91,42 @@ export default function TransactionsPage() {
         api.categories(),
         api.transfers(),
       ]);
-      setTransactions(items);
+      setTransactions(transactionPage.data);
       setAccounts(accountItems);
       setCategories(categoryItems);
       setTransfers(transferItems);
+      setNextCursor(transactionPage.nextCursor);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível carregar as transações.");
     } finally {
       setLoading(false);
     }
   }, [filters]);
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const page = await api.transactions({
+        search: filters.search || undefined,
+        start: filters.start || undefined,
+        end: filters.end || undefined,
+        type: filters.type || undefined,
+        account_id: filters.account_id || undefined,
+        category_id: filters.category_id || undefined,
+        source: filters.source || undefined,
+        sort: filters.sort,
+        cursor: nextCursor,
+      });
+      setTransactions((current) => [...current, ...page.data]);
+      setNextCursor(page.nextCursor);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível carregar mais movimentos.");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -238,6 +267,13 @@ export default function TransactionsPage() {
           <div className="hidden grid-cols-[minmax(240px,1fr)_190px_125px_115px_140px] gap-4 border-b border-line bg-paper/50 px-5 py-3 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted md:grid md:px-6"><span>Movimento</span><span>Conta</span><span>Data</span><span>Origem</span><span className="text-right">Valor</span></div>
           <div className="divide-y divide-line">{transactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onEdit={() => editMovement(transaction)} onDelete={() => void remove(transaction)} />)}</div>
         </Card>
+      )}
+      {nextCursor && !loading && !error && (
+        <div className="mt-5 flex justify-center">
+          <Button variant="secondary" onClick={() => void loadMore()} disabled={loadingMore}>
+            {loadingMore ? <Spinner /> : null} {loadingMore ? "Carregando…" : "Carregar mais movimentos"}
+          </Button>
+        </div>
       )}
       <p className="mt-4 text-xs text-muted">{user?.timezone} · {transactions.length} movimento{transactions.length === 1 ? "" : "s"} exibido{transactions.length === 1 ? "" : "s"}</p>
     </>

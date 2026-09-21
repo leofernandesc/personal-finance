@@ -24,7 +24,7 @@ from app.services.finance import (
     create_transaction,
     create_transfer,
     delete_transaction,
-    list_transactions,
+    list_transaction_page,
     update_transaction,
     update_transfer,
 )
@@ -58,6 +58,7 @@ def serialize_transaction(transaction: Transaction) -> TransactionResponse:
 
 @router.get("/transactions", response_model=list[TransactionResponse])
 def get_transactions(
+    response: Response,
     start: date | None = None,
     end: date | None = None,
     transaction_type: TransactionType | None = Query(default=None, alias="type"),
@@ -67,27 +68,29 @@ def get_transactions(
     search: str | None = Query(default=None, max_length=80),
     sort: TransactionSort = "date_desc",
     limit: int = Query(default=100, ge=1, le=500),
+    cursor: str | None = Query(default=None, max_length=512),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if start and end and start > end:
         raise HTTPException(status_code=422, detail="A data inicial deve ser anterior à final")
-    return [
-        serialize_transaction(t)
-        for t in list_transactions(
-            db,
-            user,
-            start=start,
-            end=end,
-            transaction_type=transaction_type,
-            account_id=account_id,
-            category_id=category_id,
-            source=source,
-            search=search,
-            sort=sort,
-            limit=limit,
-        )
-    ]
+    page = list_transaction_page(
+        db,
+        user,
+        start=start,
+        end=end,
+        transaction_type=transaction_type,
+        account_id=account_id,
+        category_id=category_id,
+        source=source,
+        search=search,
+        sort=sort,
+        limit=limit,
+        cursor=cursor,
+    )
+    if page.next_cursor:
+        response.headers["X-Next-Cursor"] = page.next_cursor
+    return [serialize_transaction(t) for t in page.items]
 
 
 @router.post(

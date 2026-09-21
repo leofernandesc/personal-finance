@@ -115,6 +115,37 @@ def test_web_flow_forces_source_creates_transfer_and_isolates_users(clients):
     assert transfer_edit.json()["amount"] == "125.00"
     assert transfer_edit.json()["description"] == "Reserva ajustada"
 
+    for description in ("Almoço", "Jantar"):
+        created_expense = first.post(
+            "/api/v1/transactions",
+            json={
+                "account_id": nubank["id"],
+                "category_id": food["id"],
+                "type": "expense",
+                "amount": "20.00",
+                "description": description,
+                "transaction_date": "2026-09-21",
+            },
+        )
+        assert created_expense.status_code == 201, created_expense.text
+
+    first_page = first.get(
+        "/api/v1/transactions?type=expense&limit=1",
+        headers={"Origin": "http://localhost:3000"},
+    )
+    assert first_page.status_code == 200
+    assert first_page.headers["access-control-expose-headers"] == "X-Next-Cursor"
+    assert len(first_page.json()) == 1
+    next_cursor = first_page.headers.get("x-next-cursor")
+    assert next_cursor
+    second_page = first.get(
+        "/api/v1/transactions",
+        params={"type": "expense", "limit": 1, "cursor": next_cursor},
+    )
+    assert second_page.status_code == 200
+    assert len(second_page.json()) == 1
+    assert first_page.json()[0]["id"] != second_page.json()[0]["id"]
+
     history = first.get("/api/v1/transactions").json()
     transfer_rows = [item for item in history if item["type"] == "transfer"]
     assert len(transfer_rows) == 1

@@ -31,15 +31,18 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}) {
+async function send(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${API_BASE}${path}`, {
+  return fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
     credentials: "include",
     cache: "no-store",
   });
+}
+
+async function parseResponse<T>(response: Response) {
   if (!response.ok) {
     let detail: unknown;
     try {
@@ -59,6 +62,18 @@ async function request<T>(path: string, init: RequestInit = {}) {
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+async function request<T>(path: string, init: RequestInit = {}) {
+  return parseResponse<T>(await send(path, init));
+}
+
+async function requestPage<T>(path: string, init: RequestInit = {}) {
+  const response = await send(path, init);
+  return {
+    data: await parseResponse<T>(response),
+    nextCursor: response.headers.get("X-Next-Cursor"),
+  };
 }
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -99,10 +114,10 @@ export const api = {
     request<Category>("/categories", json("POST", body)),
   updateCategory: (id: string, body: Partial<{ name: string; kind: string; parent_id: string | null; is_active: boolean }>) =>
     request<Category>(`/categories/${id}`, json("PATCH", body)),
-  transactions: (params: { start?: string; end?: string; type?: TransactionType; account_id?: string; category_id?: string; source?: SourceType; search?: string; sort?: TransactionSort } = {}) => {
+  transactions: (params: { start?: string; end?: string; type?: TransactionType; account_id?: string; category_id?: string; source?: SourceType; search?: string; sort?: TransactionSort; limit?: number; cursor?: string } = {}) => {
     const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => value && search.set(key, value));
-    return request<Transaction[]>(`/transactions${search.size ? `?${search}` : ""}`);
+    Object.entries(params).forEach(([key, value]) => value && search.set(key, String(value)));
+    return requestPage<Transaction[]>(`/transactions${search.size ? `?${search}` : ""}`);
   },
   createTransaction: (body: {
     account_id: string;

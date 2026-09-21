@@ -80,7 +80,8 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
 1. Adicionar testes E2E de navegador para cadastro, lançamento, transferência,
    orçamento e meta em viewport desktop e mobile.
 2. Fazer auditoria manual de teclado, foco, leitor de tela e contraste.
-3. Adicionar paginação por cursor ao histórico antes de volumes grandes.
+3. Paginação por cursor implementada no histórico da API e no botão “Carregar
+   mais” do frontend; falta apenas cobrir o fluxo visual com E2E de navegador.
 4. Fluxo explícito para editar uma transferência inteira implementado na API e
    no formulário web, mantendo as duas pernas atômicas; falta apenas cobrir o
    fluxo com E2E de navegador.

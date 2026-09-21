@@ -11,6 +11,15 @@ async function register(page: Page) {
   await page.getByLabel("Senha", { exact: true }).fill("e2e-password-123");
   await page.getByRole("button", { name: "Criar minha conta" }).click();
   await expect(page).toHaveURL(/\/diagnostico/);
+  await expect(page.getByRole("heading", { name: "Diagnóstico financeiro" }).first()).toBeVisible();
+  await expect(page.getByText(/Etapa 1 de 13/)).toBeVisible();
+  await page.getByRole("checkbox").nth(0).check();
+  await page.getByRole("checkbox").nth(1).check();
+  await page.getByRole("button", { name: "Próxima etapa" }).click();
+  await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();
+  await page.getByRole("button", { name: "Salvar e continuar depois" }).click();
+  await page.reload();
+  await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();
 }
 
 test("completa o fluxo financeiro essencial no desktop e no mobile", async ({ page }) => {

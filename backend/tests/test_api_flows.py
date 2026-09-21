@@ -60,6 +60,22 @@ def test_readiness_requires_the_financial_schema(clients):
     assert "financial_diagnostics" in REQUIRED_SCHEMA_TABLES
 
 
+def test_cors_allows_diagnostic_draft_put(clients):
+    first, _second = clients
+
+    response = first.options(
+        "/api/v1/diagnostic/draft",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "PUT",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "PUT" in response.headers["access-control-allow-methods"]
+
+
 def create_account(client: TestClient, name: str) -> dict:
     response = client.post(
         "/api/v1/accounts",

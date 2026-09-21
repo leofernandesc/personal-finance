@@ -31,7 +31,7 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 21/09/2026, passaram 38 testes de backend, 19 testes da fronteira
+Na revisão de 21/09/2026, passaram 39 testes de backend, 19 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
@@ -94,9 +94,12 @@ O E2E de navegador também passou localmente em 21/09/2026:
   de desenvolvimento e navegador de teste, sem alterar o runtime financeiro;
 - o cenário `frontend/e2e/core-flow.spec.ts` passou em `desktop-firefox` e
   `mobile-firefox`;
-- o cenário criou um usuário novo, abriu o diagnóstico após o cadastro, criou
-  Nubank e Inter, registrou uma despesa, criou e editou uma transferência,
-  criou orçamento e meta, e confirmou o saldo no dashboard;
+- o cenário criou um usuário novo, abriu o diagnóstico após o cadastro, salvou
+  a primeira etapa e confirmou a retomada do rascunho, criou Nubank e Inter,
+  registrou uma despesa, criou e editou uma transferência, criou orçamento e
+  meta, e confirmou o saldo no dashboard;
+- o preflight CORS para `PUT /diagnostic/draft` passou, evitando regressão no
+  salvamento do diagnóstico pelo navegador;
 - o workflow de CI repete o cenário em uma stack Compose temporária e remove
   seus volumes ao terminar.
 
@@ -176,7 +179,7 @@ código e testes automatizados:
 - o resumo aparece no diagnóstico concluído e em um card do dashboard;
 - não existe upload de documentos e nenhuma resposta cria transação, conta,
   orçamento ou meta automaticamente;
-- `make check` passou: 38 testes de backend, 19 do agente, 21 do frontend e
+- `make check` passou: 39 testes de backend, 19 do agente, 21 do frontend e
   build de produção do Next.js.
 
 A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite

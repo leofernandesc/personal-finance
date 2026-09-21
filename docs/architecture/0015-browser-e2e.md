@@ -14,8 +14,9 @@ Foi adicionado um harness Playwright em `frontend/` com dois projetos:
 - Firefox desktop;
 - Firefox com viewport e user agent de mobile.
 
-O cenário usa a interface web para criar um usuário novo e percorrer contas,
-despesa, transferência, edição de transferência, orçamento, meta e dashboard.
+O cenário usa a interface web para criar um usuário novo, abrir o diagnóstico,
+salvar e retomar seu rascunho, e percorrer contas, despesa, transferência,
+edição de transferência, orçamento, meta e dashboard.
 Ele não acessa o PostgreSQL diretamente nem injeta dados financeiros para
 validar a UI. Cada execução gera um e-mail de teste novo, e o ambiente de CI
 usa uma stack Compose temporária.

@@ -238,7 +238,9 @@ retenção conforme a política de privacidade do serviço.
    bloqueia o restante da aplicação.
 4. Cadastre contas e, se necessário, ajuste categorias.
 5. Registre receitas, despesas e transferências em **Transações**.
-6. Consulte saldo, fluxo, categorias, orçamentos e metas no dashboard.
+6. Edite uma transferência pelo histórico; a aplicação atualiza suas duas
+   movimentações de forma conjunta.
+7. Consulte saldo, fluxo, categorias, orçamentos e metas no dashboard.
 
 ### Diagnóstico financeiro
 

@@ -119,6 +119,8 @@ export const api = {
   transfers: () => request<Transfer[]>("/transfers"),
   createTransfer: (body: { source_account_id: string; destination_account_id: string; amount: string; description: string; transaction_date?: string; idempotency_key?: string }) =>
     request<Transfer>("/transfers", json("POST", body)),
+  updateTransfer: (id: string, body: Partial<{ source_account_id: string; destination_account_id: string; amount: string; description: string; transaction_date: string }>) =>
+    request<Transfer>(`/transfers/${id}`, json("PATCH", body)),
   budgets: (month?: string) => request<Budget[]>(`/budgets${month ? `?month=${month}` : ""}`),
   createBudget: (body: { category_id: string; month: string; limit_amount: string }) =>
     request<Budget>("/budgets", json("POST", body)),

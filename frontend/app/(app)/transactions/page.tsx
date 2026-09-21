@@ -26,6 +26,7 @@ import type {
   Transaction,
   TransactionSort,
   TransactionType,
+  Transfer,
 } from "@/lib/types";
 import { formatLongDate, money } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters);
   const [loading, setLoading] = useState(true);
@@ -65,12 +67,13 @@ export default function TransactionsPage() {
     searchParams.get("new") === "1" ? "transaction" : null,
   );
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [items, accountItems, categoryItems] = await Promise.all([
+      const [items, accountItems, categoryItems, transferItems] = await Promise.all([
         api.transactions({
           search: filters.search || undefined,
           start: filters.start || undefined,
@@ -83,10 +86,12 @@ export default function TransactionsPage() {
         }),
         api.accounts(),
         api.categories(),
+        api.transfers(),
       ]);
       setTransactions(items);
       setAccounts(accountItems);
       setCategories(categoryItems);
+      setTransfers(transferItems);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível carregar as transações.");
     } finally {
@@ -128,10 +133,27 @@ export default function TransactionsPage() {
   const closeEditor = () => {
     setEditorMode(null);
     setEditing(null);
+    setEditingTransfer(null);
   };
   const hasFilters = Object.entries(filters).some(
     ([key, value]) => key !== "sort" && Boolean(value),
   );
+  const editMovement = (transaction: Transaction) => {
+    if (transaction.type === "transfer") {
+      const transfer = transfers.find((item) => item.id === transaction.transfer_id);
+      if (!transfer) {
+        setError("Não foi possível carregar os detalhes dessa transferência.");
+        return;
+      }
+      setEditing(null);
+      setEditingTransfer(transfer);
+      setEditorMode("transfer");
+      return;
+    }
+    setEditingTransfer(null);
+    setEditing(transaction);
+    setEditorMode("transaction");
+  };
 
   return (
     <>
@@ -141,10 +163,10 @@ export default function TransactionsPage() {
         description="Tudo o que entrou, saiu ou mudou de conta, com contexto suficiente para entender o mês."
         action={(
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button className="w-full sm:w-auto" variant="secondary" onClick={() => { setEditing(null); setEditorMode("transfer"); }}>
+            <Button className="w-full sm:w-auto" variant="secondary" onClick={() => { setEditing(null); setEditingTransfer(null); setEditorMode("transfer"); }}>
               <ArrowLeftRight size={16} /> Transferir
             </Button>
-            <Button className="w-full sm:w-auto" onClick={() => { setEditing(null); setEditorMode("transaction"); }}>
+            <Button className="w-full sm:w-auto" onClick={() => { setEditing(null); setEditingTransfer(null); setEditorMode("transaction"); }}>
               <Plus size={17} /> Nova transação
             </Button>
           </div>
@@ -167,7 +189,9 @@ export default function TransactionsPage() {
       {editorMode === "transfer" && (
         <div className="mb-6">
           <TransferEditor
+            key={editingTransfer?.id ?? "new-transfer"}
             accounts={accounts}
+            transfer={editingTransfer}
             timezone={user?.timezone}
             onCancel={closeEditor}
             onSaved={() => { closeEditor(); void load(); }}
@@ -212,7 +236,7 @@ export default function TransactionsPage() {
       ) : (
         <Card className="overflow-hidden">
           <div className="hidden grid-cols-[minmax(240px,1fr)_190px_125px_115px_140px] gap-4 border-b border-line bg-paper/50 px-5 py-3 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted md:grid md:px-6"><span>Movimento</span><span>Conta</span><span>Data</span><span>Origem</span><span className="text-right">Valor</span></div>
-          <div className="divide-y divide-line">{transactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onEdit={() => { setEditing(transaction); setEditorMode("transaction"); }} onDelete={() => void remove(transaction)} />)}</div>
+          <div className="divide-y divide-line">{transactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onEdit={() => editMovement(transaction)} onDelete={() => void remove(transaction)} />)}</div>
         </Card>
       )}
       <p className="mt-4 text-xs text-muted">{user?.timezone} · {transactions.length} movimento{transactions.length === 1 ? "" : "s"} exibido{transactions.length === 1 ? "" : "s"}</p>
@@ -224,11 +248,11 @@ function FilterSelect({ label, id, value, onChange, children }: { label: string;
   return <div><label className="label" htmlFor={id}>{label}</label><Select id={id} value={value} onChange={(event) => onChange(event.target.value)}>{children}</Select></div>;
 }
 
-function TransactionRow({ transaction, onEdit, onDelete }: { transaction: Transaction; onEdit: () => void; onDelete: () => void }) {
+function TransactionRow({ transaction, onEdit, onDelete }: { transaction: Transaction; onEdit?: () => void; onDelete: () => void }) {
   const isIncome = transaction.type === "income";
   const isTransfer = transaction.type === "transfer";
   const accountLabel = isTransfer
     ? `${transaction.transfer_source_account_name || transaction.account_name || "Origem"} → ${transaction.transfer_destination_account_name || "Destino"}`
     : transaction.account_name || "Conta";
-  return <div className="group grid gap-3 px-5 py-4 md:grid-cols-[minmax(240px,1fr)_190px_125px_115px_140px] md:items-center md:gap-4 md:px-6"><div className="flex min-w-0 items-center gap-3"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isIncome ? "bg-mint/60 text-moss" : isTransfer ? "bg-butter/70 text-[#796b1b]" : "bg-rust/10 text-rust"}`}>{isIncome ? <ArrowDownLeft size={16} /> : isTransfer ? <ArrowLeftRight size={16} /> : <ArrowUpRight size={16} />}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{transaction.description || "Sem descrição"}</p><p className="mt-0.5 truncate text-xs text-muted">{transaction.category_name || (isTransfer ? "Transferência entre contas" : "Sem categoria")}</p></div></div><p className="break-words pl-12 text-xs text-muted md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Conta</span>{accountLabel}</p><p className="pl-12 text-xs text-muted md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Data</span>{formatLongDate(transaction.transaction_date)}</p><div className="pl-12 md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Origem</span><TransactionSource source={transaction.source} /></div><div className="flex items-center justify-between gap-3 pl-12 md:justify-end md:pl-0"><div className="text-right"><p className={`text-sm font-semibold ${isIncome ? "text-moss" : isTransfer ? "text-muted" : "text-ink"}`}>{isIncome ? "+" : isTransfer ? "" : "−"}{money(transaction.amount)}</p>{isTransfer && <p className="text-[0.65rem] text-muted">sem impacto patrimonial</p>}</div><div className="flex gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">{!isTransfer && <button onClick={onEdit} className="rounded-lg p-1.5 text-muted hover:bg-paper hover:text-navy" aria-label="Editar transação"><Edit3 size={15} /></button>}<button onClick={onDelete} className="rounded-lg p-1.5 text-muted hover:bg-rust/10 hover:text-rust" aria-label={isTransfer ? "Excluir transferência" : "Excluir transação"}><Trash2 size={15} /></button></div></div></div>;
+  return <div className="group grid gap-3 px-5 py-4 md:grid-cols-[minmax(240px,1fr)_190px_125px_115px_140px] md:items-center md:gap-4 md:px-6"><div className="flex min-w-0 items-center gap-3"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isIncome ? "bg-mint/60 text-moss" : isTransfer ? "bg-butter/70 text-[#796b1b]" : "bg-rust/10 text-rust"}`}>{isIncome ? <ArrowDownLeft size={16} /> : isTransfer ? <ArrowLeftRight size={16} /> : <ArrowUpRight size={16} />}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{transaction.description || "Sem descrição"}</p><p className="mt-0.5 truncate text-xs text-muted">{transaction.category_name || (isTransfer ? "Transferência entre contas" : "Sem categoria")}</p></div></div><p className="break-words pl-12 text-xs text-muted md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Conta</span>{accountLabel}</p><p className="pl-12 text-xs text-muted md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Data</span>{formatLongDate(transaction.transaction_date)}</p><div className="pl-12 md:pl-0"><span className="mr-1 uppercase tracking-[0.08em] text-[0.6rem] text-muted/70 md:hidden">Origem</span><TransactionSource source={transaction.source} /></div><div className="flex items-center justify-between gap-3 pl-12 md:justify-end md:pl-0"><div className="text-right"><p className={`text-sm font-semibold ${isIncome ? "text-moss" : isTransfer ? "text-muted" : "text-ink"}`}>{isIncome ? "+" : isTransfer ? "" : "−"}{money(transaction.amount)}</p>{isTransfer && <p className="text-[0.65rem] text-muted">sem impacto patrimonial</p>}</div><div className="flex gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">{onEdit && <button onClick={onEdit} className="rounded-lg p-1.5 text-muted hover:bg-paper hover:text-navy" aria-label={isTransfer ? "Editar transferência" : "Editar transação"}><Edit3 size={15} /></button>}<button onClick={onDelete} className="rounded-lg p-1.5 text-muted hover:bg-rust/10 hover:text-rust" aria-label={isTransfer ? "Excluir transferência" : "Excluir transação"}><Trash2 size={15} /></button></div></div></div>;
 }

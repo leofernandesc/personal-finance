@@ -18,6 +18,7 @@ from app.schemas.finance import (
     TransactionUpdate,
     TransferCreate,
     TransferResponse,
+    TransferUpdate,
 )
 from app.services.finance import (
     create_transaction,
@@ -25,6 +26,7 @@ from app.services.finance import (
     delete_transaction,
     list_transactions,
     update_transaction,
+    update_transfer,
 )
 
 router = APIRouter(tags=["transactions"])
@@ -169,6 +171,19 @@ def add_transfer(
         }
     )
     transfer = create_transfer(db, user, command, forced_source="web")
+    db.commit()
+    db.refresh(transfer)
+    return transfer
+
+
+@router.patch("/transfers/{transfer_id}", response_model=TransferResponse)
+def edit_transfer(
+    transfer_id: UUID,
+    payload: TransferUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    transfer = update_transfer(db, user, transfer_id, payload)
     db.commit()
     db.refresh(transfer)
     return transfer

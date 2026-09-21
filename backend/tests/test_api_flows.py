@@ -103,6 +103,17 @@ def test_web_flow_forces_source_creates_transfer_and_isolates_users(clients):
     )
     assert transfer.status_code == 201, transfer.text
     assert transfer.json()["source"] == "web"
+    transfer_edit = first.patch(
+        f"/api/v1/transfers/{transfer.json()['id']}",
+        json={
+            "amount": "125.00",
+            "description": "Reserva ajustada",
+            "transaction_date": "2026-09-21",
+        },
+    )
+    assert transfer_edit.status_code == 200, transfer_edit.text
+    assert transfer_edit.json()["amount"] == "125.00"
+    assert transfer_edit.json()["description"] == "Reserva ajustada"
 
     history = first.get("/api/v1/transactions").json()
     transfer_rows = [item for item in history if item["type"] == "transfer"]
@@ -113,6 +124,11 @@ def test_web_flow_forces_source_creates_transfer_and_isolates_users(clients):
     register(second, "bruno@example.com")
     assert second.get("/api/v1/accounts").json() == []
     assert second.get("/api/v1/transactions").json() == []
+    foreign_transfer_edit = second.patch(
+        f"/api/v1/transfers/{transfer.json()['id']}",
+        json={"amount": "999.00"},
+    )
+    assert foreign_transfer_edit.status_code == 404
 
 
 def test_invalid_date_range_is_rejected(clients):

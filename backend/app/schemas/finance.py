@@ -164,6 +164,31 @@ class TransferCreate(APIModel):
         return self
 
 
+class TransferUpdate(APIModel):
+    source_account_id: UUID | None = None
+    destination_account_id: UUID | None = None
+    amount: Decimal | None = Field(
+        default=None, gt=Decimal("0.00"), max_digits=14, decimal_places=2
+    )
+    description: str | None = Field(default=None, min_length=1, max_length=255)
+    transaction_date: date | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def valid_amount(cls, value: Decimal | None) -> Decimal | None:
+        return validate_money(value) if value is not None else None
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Informe uma descrição")
+        return cleaned
+
+
 class TransferResponse(APIModel):
     id: UUID
     source_account_id: UUID

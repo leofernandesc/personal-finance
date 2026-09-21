@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import select
 
 from app.api.deps import AgentPrincipal
 from app.api.v1.agent import (
@@ -19,6 +20,7 @@ from app.models import (
     AuthSession,
     Budget,
     PendingAgentAction,
+    Transaction,
     User,
     WhatsAppIdentity,
 )
@@ -34,6 +36,7 @@ from app.schemas.finance import (
     CategoryUpdate,
     TransactionCreate,
     TransferCreate,
+    TransferUpdate,
 )
 from app.services.finance import (
     balance_for_account,
@@ -49,6 +52,7 @@ from app.services.finance import (
     totals_for_period,
     update_account,
     update_category,
+    update_transfer,
     user_today,
 )
 from app.services.maintenance import cleanup_expired_data
@@ -127,6 +131,55 @@ def test_income_expense_and_transfer_preserve_balances(db):
         Decimal("1000.00"),
         Decimal("250.00"),
     )
+
+
+def test_update_transfer_changes_both_legs_atomically(db):
+    user, nubank, inter, _food, _salary = setup_finances(db)
+    transfer = create_transfer(
+        db,
+        user,
+        TransferCreate(
+            source_account_id=nubank.id,
+            destination_account_id=inter.id,
+            amount=Decimal("200.00"),
+            description="Reserva",
+            transaction_date=date(2026, 9, 12),
+        ),
+    )
+    db.commit()
+
+    updated = update_transfer(
+        db,
+        user,
+        transfer.id,
+        TransferUpdate(
+            source_account_id=inter.id,
+            destination_account_id=nubank.id,
+            amount=Decimal("350.00"),
+            description="Rebalanceamento",
+            transaction_date=date(2026, 9, 15),
+        ),
+    )
+    db.commit()
+
+    legs = list(
+        db.scalars(
+            select(Transaction)
+            .where(Transaction.transfer_id == updated.id)
+            .order_by(Transaction.transfer_leg)
+        )
+    )
+    assert updated.source_account_id == inter.id
+    assert updated.destination_account_id == nubank.id
+    assert updated.amount == Decimal("350.00")
+    assert updated.description == "Rebalanceamento"
+    assert [(leg.transfer_leg, leg.account_id, leg.amount) for leg in legs] == [
+        ("in", nubank.id, Decimal("350.00")),
+        ("out", inter.id, Decimal("350.00")),
+    ]
+    assert all(leg.description == "Rebalanceamento" for leg in legs)
+    assert balance_for_account(db, nubank) == Decimal("1350.00")
+    assert balance_for_account(db, inter) == Decimal("-250.00")
 
 
 def test_budget_reports_spend_remaining_and_excess(db):

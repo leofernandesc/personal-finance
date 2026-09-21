@@ -3,17 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Account } from "@/lib/types";
+import type { Account, Transfer } from "@/lib/types";
 import { normalizeMoneyInput, todayForTimezone } from "@/lib/utils";
 import { Button, Input, Select, Spinner } from "@/components/ui";
 
 export function TransferEditor({
   accounts,
+  transfer,
   timezone,
   onSaved,
   onCancel,
 }: {
   accounts: Account[];
+  transfer?: Transfer | null;
   timezone?: string;
   onSaved: () => void;
   onCancel: () => void;
@@ -22,11 +24,11 @@ export function TransferEditor({
     () => accounts.filter((account) => account.is_active),
     [accounts],
   );
-  const [sourceAccountId, setSourceAccountId] = useState(activeAccounts[0]?.id || "");
-  const [destinationAccountId, setDestinationAccountId] = useState(activeAccounts[1]?.id || "");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("Transferência");
-  const [transactionDate, setTransactionDate] = useState(todayForTimezone(timezone));
+  const [sourceAccountId, setSourceAccountId] = useState(transfer?.source_account_id || activeAccounts[0]?.id || "");
+  const [destinationAccountId, setDestinationAccountId] = useState(transfer?.destination_account_id || activeAccounts[1]?.id || "");
+  const [amount, setAmount] = useState(transfer?.amount || "");
+  const [description, setDescription] = useState(transfer?.description || "Transferência");
+  const [transactionDate, setTransactionDate] = useState(transfer?.transaction_date || todayForTimezone(timezone));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -51,13 +53,15 @@ export function TransferEditor({
       if (!sourceAccountId || !destinationAccountId) throw new Error("Escolha as contas de origem e destino.");
       if (sourceAccountId === destinationAccountId) throw new Error("Origem e destino devem ser diferentes.");
       if (!normalizedAmount || Number(normalizedAmount) <= 0) throw new Error("Informe um valor monetário válido maior que zero.");
-      await api.createTransfer({
+      const payload = {
         source_account_id: sourceAccountId,
         destination_account_id: destinationAccountId,
         amount: normalizedAmount,
         description: description.trim() || "Transferência",
         transaction_date: transactionDate,
-      });
+      };
+      if (transfer) await api.updateTransfer(transfer.id, payload);
+      else await api.createTransfer(payload);
       onSaved();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível realizar a transferência.");
@@ -70,7 +74,7 @@ export function TransferEditor({
     <div className="rounded-card border border-navy/15 bg-[#fbfcfa] p-5 shadow-card md:p-6">
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <p className="eyebrow">Entre suas contas</p>
+          <p className="eyebrow">{transfer ? "Editar transferência" : "Entre suas contas"}</p>
           <h2 className="mt-1 font-display text-2xl tracking-[-0.03em]">Mover sem alterar seu patrimônio.</h2>
         </div>
         <button onClick={onCancel} className="rounded-lg p-2 text-muted hover:bg-paper" aria-label="Fechar formulário de transferência">
@@ -119,7 +123,7 @@ export function TransferEditor({
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={onCancel}>Cancelar</Button>
         <Button type="button" className="w-full sm:w-auto" onClick={() => void submit()} disabled={saving || activeAccounts.length < 2}>
-          {saving ? <Spinner /> : <Check size={16} />} {saving ? "Transferindo…" : "Realizar transferência"}
+          {saving ? <Spinner /> : <Check size={16} />} {saving ? "Salvando…" : transfer ? "Salvar alterações" : "Realizar transferência"}
         </Button>
       </div>
     </div>

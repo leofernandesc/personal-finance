@@ -20,6 +20,7 @@ from app.schemas.finance import (
     TransactionSort,
     TransactionUpdate,
     TransferCreate,
+    TransferUpdate,
 )
 
 CENT = Decimal("0.01")
@@ -409,6 +410,77 @@ def create_transfer(
         db.flush()
         db.add_all(legs)
         db.flush()
+    return transfer
+
+
+def update_transfer(
+    db: Session, user: User, transfer_id: UUID, payload: TransferUpdate
+) -> Transfer:
+    transfer = db.scalar(
+        select(Transfer).where(
+            Transfer.id == transfer_id,
+            Transfer.user_id == user.id,
+            Transfer.deleted_at.is_(None),
+        )
+    )
+    if not transfer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transferência não encontrada"
+        )
+
+    legs = list(
+        db.scalars(
+            select(Transaction).where(
+                Transaction.transfer_id == transfer.id,
+                Transaction.user_id == user.id,
+                Transaction.deleted_at.is_(None),
+            )
+        )
+    )
+    legs_by_side = {leg.transfer_leg: leg for leg in legs}
+    if len(legs) != 2 or set(legs_by_side) != {"in", "out"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="As duas movimentações da transferência não estão íntegras",
+        )
+
+    data = payload.model_dump(exclude_unset=True)
+    source_account_id = data.get("source_account_id") or transfer.source_account_id
+    destination_account_id = data.get("destination_account_id") or transfer.destination_account_id
+    source = ensure_account(
+        db,
+        user.id,
+        source_account_id,
+        active=source_account_id != transfer.source_account_id,
+    )
+    destination = ensure_account(
+        db,
+        user.id,
+        destination_account_id,
+        active=destination_account_id != transfer.destination_account_id,
+    )
+    if source.id == destination.id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="As contas devem ser diferentes",
+        )
+
+    amount = money(data.get("amount") or transfer.amount)
+    description = data.get("description") or transfer.description
+    transaction_date = data.get("transaction_date") or transfer.transaction_date
+
+    transfer.source_account_id = source.id
+    transfer.destination_account_id = destination.id
+    transfer.amount = amount
+    transfer.description = description
+    transfer.transaction_date = transaction_date
+    legs_by_side["out"].account_id = source.id
+    legs_by_side["in"].account_id = destination.id
+    for leg in legs:
+        leg.amount = amount
+        leg.description = description
+        leg.transaction_date = transaction_date
+    db.flush()
     return transfer
 
 

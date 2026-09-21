@@ -81,8 +81,9 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
    orçamento e meta em viewport desktop e mobile.
 2. Fazer auditoria manual de teclado, foco, leitor de tela e contraste.
 3. Adicionar paginação por cursor ao histórico antes de volumes grandes.
-4. Criar fluxo explícito para editar uma transferência inteira, mantendo as
-   duas pernas atômicas.
+4. Fluxo explícito para editar uma transferência inteira implementado na API e
+   no formulário web, mantendo as duas pernas atômicas; falta apenas cobrir o
+   fluxo com E2E de navegador.
 
 ### P2 — evolução controlada
 

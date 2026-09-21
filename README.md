@@ -207,6 +207,27 @@ O seed cria Nubank, Inter, Dinheiro, categorias, transações do mês,
 orçamentos e a meta de reserva de emergência. Ele é idempotente por e-mail e
 não duplica o usuário demo.
 
+### Manutenção operacional
+
+Sessões expiradas, desafios de confirmação vencidos e logs técnicos antigos
+podem ser limpos por uma rotina explícita. A simulação não altera o banco:
+
+```bash
+make maintenance-check
+```
+
+Para aplicar a limpeza, use o comando que exige `--apply` internamente:
+
+```bash
+make maintenance-cleanup
+```
+
+Por padrão, logs técnicos sem vínculo financeiro são retidos por 180 dias.
+Registros ligados a transações ou transferências permanecem para manter a
+idempotência de mensagens e a auditoria. A rotina nunca remove dados
+financeiros; antes de definir um agendamento compartilhado, configure backup e
+retenção conforme a política de privacidade do serviço.
+
 ## Fluxos principais
 
 ### Web

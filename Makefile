@@ -1,7 +1,7 @@
 PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 
-.PHONY: help setup up down logs migrate seed db-backup db-backup-check db-restore backend-check agent-check frontend-check cycle3-check cycle3-ready check
+.PHONY: help setup up down logs migrate seed maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -10,6 +10,8 @@ help:
 	@echo "logs            acompanha os logs dos serviços"
 	@echo "migrate         aplica as migrations no banco configurado"
 	@echo "seed            carrega os dados de demonstração"
+	@echo "maintenance-check simula a limpeza operacional (Compose ativo ou host)"
+	@echo "maintenance-cleanup aplica a limpeza operacional explicitamente"
 	@echo "db-backup       cria dump local não cifrado do PostgreSQL"
 	@echo "db-backup-check restaura um dump em banco temporário e verifica a estrutura"
 	@echo "db-restore      restaura dump com confirmação explícita (destrutivo)"
@@ -37,6 +39,20 @@ migrate:
 
 seed:
 	cd backend && PYTHONPATH=. .venv/bin/python -m app.seed_demo
+
+maintenance-check:
+	@if docker compose ps --services --filter status=running 2>/dev/null | grep -qx backend; then \
+		docker compose exec -T backend python -m app.maintenance; \
+	else \
+		PYTHONPATH=backend $(PYTHON) -m app.maintenance; \
+	fi
+
+maintenance-cleanup:
+	@if docker compose ps --services --filter status=running 2>/dev/null | grep -qx backend; then \
+		docker compose exec -T backend python -m app.maintenance --apply; \
+	else \
+		PYTHONPATH=backend $(PYTHON) -m app.maintenance --apply; \
+	fi
 
 db-backup:
 	./scripts/backup_postgres.sh

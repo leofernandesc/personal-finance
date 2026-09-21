@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://finance:finance@localhost:5432/personal_finance"
     session_cookie_name: str = "pf_session"
     session_ttl_hours: int = Field(default=168, ge=1, le=8760)
+    agent_log_retention_days: int = Field(default=180, ge=30, le=3650)
     cookie_secure: bool = False
     cors_origins: str = "http://localhost:3000"
     allowed_hosts: str = "localhost,127.0.0.1,backend,testserver"

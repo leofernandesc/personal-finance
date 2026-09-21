@@ -13,7 +13,15 @@ from app.api.v1.agent import (
     verify_whatsapp,
 )
 from app.core.security import hash_password
-from app.models import AgentToolCall, Budget, User, WhatsAppIdentity
+from app.models import (
+    AgentMessage,
+    AgentToolCall,
+    AuthSession,
+    Budget,
+    PendingAgentAction,
+    User,
+    WhatsAppIdentity,
+)
 from app.schemas.agent import (
     AgentTransactionDeleteRequest,
     AgentTransactionRequest,
@@ -43,6 +51,7 @@ from app.services.finance import (
     update_category,
     user_today,
 )
+from app.services.maintenance import cleanup_expired_data
 from app.services.seed import seed_categories
 
 
@@ -564,3 +573,149 @@ def test_seeded_outros_category_accepts_ambiguous_income(db):
     )
 
     assert result["category"] == "Outros"
+
+
+def test_maintenance_removes_expired_ephemeral_data_only_when_applied(db):
+    user = make_user()
+    db.add(user)
+    db.flush()
+    now = datetime(2026, 9, 21, 12, tzinfo=UTC)
+    expired_session = AuthSession(
+        user_id=user.id,
+        token_hash="expired-session",
+        expires_at=now - timedelta(minutes=1),
+    )
+    active_session = AuthSession(
+        user_id=user.id,
+        token_hash="active-session",
+        expires_at=now + timedelta(days=1),
+    )
+    expired_action = PendingAgentAction(
+        user_id=user.id,
+        channel="whatsapp",
+        sender_id="+5592999999999",
+        action_type="delete_transaction",
+        payload={"description": "Almoço"},
+        confirmation_token_hash="expired-action",
+        expires_at=now - timedelta(minutes=1),
+    )
+    active_action = PendingAgentAction(
+        user_id=user.id,
+        channel="whatsapp",
+        sender_id="+5592999999999",
+        action_type="delete_transaction",
+        payload={"description": "Mercado"},
+        confirmation_token_hash="active-action",
+        expires_at=now + timedelta(minutes=5),
+    )
+    db.add_all([expired_session, active_session, expired_action, active_action])
+    db.flush()
+    expired_session_id = expired_session.id
+    active_session_id = active_session.id
+    expired_action_id = expired_action.id
+    active_action_id = active_action.id
+    db.commit()
+
+    preview = cleanup_expired_data(db, now=now, dry_run=True)
+
+    assert preview.expired_sessions == 1
+    assert preview.expired_pending_actions == 1
+    assert db.get(AuthSession, expired_session_id) is not None
+    assert db.get(PendingAgentAction, expired_action_id) is not None
+
+    applied = cleanup_expired_data(db, now=now)
+
+    assert applied == preview
+    assert db.get(AuthSession, expired_session_id) is None
+    assert db.get(AuthSession, active_session_id) is not None
+    assert db.get(PendingAgentAction, expired_action_id) is None
+    assert db.get(PendingAgentAction, active_action_id) is not None
+
+
+def test_maintenance_preserves_financial_idempotency_ledger(db):
+    user, account, _destination, food, _salary = setup_finances(db)
+    transaction = create_transaction(
+        db,
+        user,
+        TransactionCreate(
+            account_id=account.id,
+            category_id=food.id,
+            type="expense",
+            amount=Decimal("25.00"),
+            description="Almoço",
+            transaction_date=date(2026, 9, 20),
+        ),
+    )
+    db.flush()
+    now = datetime(2026, 9, 21, 12, tzinfo=UTC)
+    old = now - timedelta(days=181)
+    technical_message = AgentMessage(
+        provider="whatsapp",
+        external_message_id="technical-old",
+        sender_id="+5592999999999",
+        user_id=user.id,
+        text_hash="a" * 64,
+        status="success",
+        created_at=old,
+        processed_at=old,
+    )
+    financial_message = AgentMessage(
+        provider="whatsapp",
+        external_message_id="financial-old",
+        sender_id="+5592999999999",
+        user_id=user.id,
+        text_hash="b" * 64,
+        status="success",
+        transaction_id=transaction.id,
+        created_at=old,
+        processed_at=old,
+    )
+    recent_message = AgentMessage(
+        provider="whatsapp",
+        external_message_id="technical-recent",
+        sender_id="+5592999999999",
+        user_id=user.id,
+        text_hash="c" * 64,
+        status="error",
+        created_at=now - timedelta(days=2),
+        processed_at=now - timedelta(days=2),
+    )
+    db.add_all([technical_message, financial_message, recent_message])
+    db.flush()
+    technical_message_id = technical_message.id
+    financial_message_id = financial_message.id
+    recent_message_id = recent_message.id
+    technical_call = AgentToolCall(
+        agent_message_id=technical_message.id,
+        user_id=user.id,
+        intent="query",
+        tool_name="get_balance",
+        status="success",
+        created_at=old,
+        processed_at=old,
+    )
+    financial_call = AgentToolCall(
+        agent_message_id=financial_message.id,
+        user_id=user.id,
+        intent="create_transaction",
+        tool_name="create_transaction",
+        status="success",
+        transaction_id=transaction.id,
+        created_at=old,
+        processed_at=old,
+    )
+    db.add_all([technical_call, financial_call])
+    db.flush()
+    technical_call_id = technical_call.id
+    financial_call_id = financial_call.id
+    db.commit()
+
+    result = cleanup_expired_data(db, now=now, agent_log_retention_days=180)
+
+    assert result.pruned_agent_messages == 1
+    assert result.pruned_agent_tool_calls == 1
+    assert db.get(AgentMessage, technical_message_id) is None
+    assert db.get(AgentToolCall, technical_call_id) is None
+    assert db.get(AgentToolCall, financial_call_id) is not None
+    assert db.get(AgentMessage, financial_message_id) is not None
+    assert db.get(AgentMessage, recent_message_id) is not None

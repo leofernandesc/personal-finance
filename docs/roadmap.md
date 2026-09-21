@@ -66,8 +66,9 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
    expiração, bloqueio das tools financeiras enquanto pendente e revogação ao
    desvincular. Ainda falta executar esse fluxo no WhatsApp real com um número
    autorizado.
-2. Definir expiração/retenção para sessões e logs do agente, além de rotina de
-   limpeza.
+2. Retenção definida e rotina de limpeza implementada em
+   `app.maintenance`; falta apenas escolher e agendar o scheduler de produção
+   conforme a política de retenção do serviço.
 3. Backup/restore local implementados com checksum, confirmação explícita e
    validação em banco temporário. Ainda falta definir retenção e armazenamento
    cifrado para produção.

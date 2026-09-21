@@ -311,6 +311,7 @@ class AgentMessage(Base):
             "status IN ('received', 'processing', 'success', 'error')",
             name="ck_agent_messages_status",
         ),
+        Index("ix_agent_messages_created_at", "created_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -346,6 +347,7 @@ class AgentToolCall(Base):
             "status IN ('processing', 'success', 'error')", name="ck_agent_tool_calls_status"
         ),
         Index("ix_agent_tool_calls_user_created", "user_id", "created_at"),
+        Index("ix_agent_tool_calls_created_at", "created_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -373,6 +375,7 @@ class AgentToolCall(Base):
 
 class PendingAgentAction(Base):
     __tablename__ = "pending_agent_actions"
+    __table_args__ = (Index("ix_pending_agent_actions_expires_at", "expires_at"),)
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

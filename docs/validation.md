@@ -31,7 +31,7 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 21/09/2026, passaram 34 testes de backend, 19 testes da fronteira
+Na revisão de 21/09/2026, passaram 36 testes de backend, 19 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
@@ -46,8 +46,8 @@ no Docker Compose:
 - `docker compose config --quiet` passou;
 - backend, frontend e PostgreSQL foram reconstruídos e ficaram ativos; banco e
   API ficaram `healthy`, e o PostgreSQL aceitou as migrations Alembic;
-- Alembic confirmou `0004_whatsapp_verification (head)`;
-- as migrations `0001 -> 0004` também foram aplicadas em um banco temporário
+- Alembic confirmou `0005_operational_cleanup_indexes (head)`;
+- as migrations `0001 -> 0005` também foram aplicadas em um banco temporário
   vazio e `alembic check` não encontrou drift entre ORM e schema;
 - o seed criou o usuário demo, contas, categorias, transações, orçamentos e
   meta;
@@ -85,6 +85,16 @@ O fluxo operacional também foi exercitado com `make db-backup` e
 `make db-backup-check`: o dump custom foi validado por checksum, restaurado em
 um banco PostgreSQL temporário e consultou `users` e `alembic_version` antes de
 ser removido. O banco de desenvolvimento não foi sobrescrito.
+
+A rotina de manutenção operacional também foi adicionada com dry-run por
+padrão. Ela remove somente sessões expiradas, desafios vencidos e logs técnicos
+sem vínculo financeiro além da retenção configurada; mensagens e chamadas
+ligadas a transações ou transferências ficam preservadas para idempotência. A
+execução aplicada exige `--apply` e deve ser agendada somente depois de definir
+retenção e backup do ambiente compartilhado. `make maintenance-check` foi
+executado contra o backend do Compose e encontrou 3 sessões expiradas, sem
+ações pendentes ou logs elegíveis; como era dry-run, nenhum registro foi
+removido.
 
 ## Ciclo 3 — prontidão da integração local
 
@@ -143,7 +153,7 @@ código e testes automatizados:
 - o resumo aparece no diagnóstico concluído e em um card do dashboard;
 - não existe upload de documentos e nenhuma resposta cria transação, conta,
   orçamento ou meta automaticamente;
-- `make check` passou: 34 testes de backend, 19 do agente, 21 do frontend e
+- `make check` passou: 36 testes de backend, 19 do agente, 21 do frontend e
   build de produção do Next.js.
 
 A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite

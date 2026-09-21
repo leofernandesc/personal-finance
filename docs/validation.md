@@ -31,11 +31,12 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 20/09/2026, passaram 28 testes de backend, 3 testes da fronteira
-do agente e 17 testes de frontend. O backend cobre criação de receita/despesa,
+Na revisão de 20/09/2026, passaram 30 testes de backend, 9 testes da fronteira
+do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
-de usuário, idempotência, auditoria e fluxos HTTP. O plugin cobre o cliente HTTP,
-a recusa de contexto sem idempotência e o conjunto esperado de 13 tools.
+de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
+de perfil e fluxos HTTP. O plugin cobre o cliente HTTP, a recusa de contexto sem
+idempotência e o conjunto esperado de 13 tools.
 
 ## Execução real local — 20/09/2026
 
@@ -45,14 +46,14 @@ no Docker Compose:
 - `docker compose config --quiet` passou;
 - backend, frontend e PostgreSQL foram reconstruídos e ficaram ativos; banco e
   API ficaram `healthy`, e o PostgreSQL aceitou as migrations Alembic;
-- Alembic confirmou `0002_harden_financial_integrity (head)`;
-- as migrations `0001 -> 0002` também foram aplicadas em um banco temporário
+- Alembic confirmou `0003_financial_diagnostic (head)`;
+- as migrations `0001 -> 0003` também foram aplicadas em um banco temporário
   vazio e `alembic check` não encontrou drift entre ORM e schema;
 - o seed criou o usuário demo, contas, categorias, transações, orçamentos e
   meta;
 - login por cookie, `GET /api/v1/dashboard` e o relatório de seis meses
   responderam pelo container FastAPI;
-- readiness respondeu `ready`, OpenAPI expôs a versão 0.2.0 e 33 paths;
+- readiness respondeu `ready`, OpenAPI expôs a versão 0.2.0 e 37 paths;
 - `POST /integrations/whatsapp/link` vinculou um telefone de teste;
 - `create_transaction` persistiu `Gasolina` de `R$ 50,00` com
   `source=whatsapp`;
@@ -72,6 +73,28 @@ no Docker Compose:
 
 O usuário demo usado nos testes é `demo@personal-finance.dev` / `demo1234`.
 Essas credenciais são somente para desenvolvimento local.
+
+## Ciclo 2A — diagnóstico e onboarding
+
+Em 20/09/2026, a implementação local do Ciclo 2A foi validada com os checks de
+código e testes automatizados:
+
+- validação do questionário alinhada aos campos obrigatórios do formulário;
+- respostas condicionais são removidas quando deixam de ser aplicáveis;
+- opções exclusivas são rejeitadas pelo backend e respeitadas pelo frontend;
+- usuários podem salvar, retomar e editar o diagnóstico sem bloquear o
+  dashboard;
+- `GET /api/v1/diagnostic/summary` calcula margem mensal e próximos passos com
+  `Decimal`, sem usar modelo de linguagem;
+- `PATCH /api/v1/auth/me` atualiza nome e fuso horário com isolamento por sessão;
+- o resumo aparece no diagnóstico concluído e em um card do dashboard;
+- não existe upload de documentos e nenhuma resposta cria transação, conta,
+  orçamento ou meta automaticamente;
+- `make check` passou: 30 testes de backend, 9 do agente, 21 do frontend e
+  build de produção do Next.js.
+
+A revisão visual manual em desktop e mobile continua sendo uma etapa de aceite
+antes de considerar o ciclo concluído para uso com clientes.
 
 ## Milestone comprovado por código
 
@@ -112,7 +135,7 @@ parear o WhatsApp:
   rejeição de intenções incompletas antes do HTTP.
 
 Esse resultado comprova o Ciclo 1, mas não comprova entrega por WhatsApp real.
-O Ciclo 2 continua dependente do gateway Hermes/Baileys e do pareamento manual.
+O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 
 ## Validações dependentes do ambiente
 

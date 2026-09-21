@@ -11,7 +11,7 @@ dependem de processos externos. “Código pronto” não significa “canal val
 | C–G. Contas, categorias, receitas, despesas e transferências | Concluído | API, UI e testes de saldo/duas pernas |
 | H–J. Dashboard, saldo e gastos por categoria | Concluído | dashboard responsivo e cálculos no backend |
 | K–L. Orçamentos e metas | Concluído | CRUD essencial, progresso e agregação de subcategorias |
-| Diagnóstico inicial e edição posterior | Concluído | 13 etapas, 69 perguntas, rascunho por etapa, consentimento e isolamento por usuário |
+| Diagnóstico inicial e edição posterior | Ciclo 2A concluído em código | 13 etapas, 69 perguntas, rascunho por etapa, consentimento, dependências condicionais, resumo determinístico e isolamento por usuário |
 | M–O. Mensagem WhatsApp cria despesa e atualiza dashboard | Ciclo 1 concluído; canal pendente | Ollama + runner, tool, FastAPI, PostgreSQL e idempotência validados; falta sessão Hermes/Baileys real |
 | P–Q. Consulta de transporte responde com dados reais | Ciclo 1 concluído; canal pendente | `get_category_summary` retornou `R$ 78,00` pelo backend; falta round trip no WhatsApp real |
 | R. Reentrega não duplica transação | Concluído no backend | chave por usuário/mensagem e teste em PostgreSQL |
@@ -25,10 +25,26 @@ depois dos dois round trips reais pelo WhatsApp descritos em
 O Ciclo 1 foi concluído localmente em 20/09/2026. O Ollama foi executado em
 container separado por falta de instalação nativa sem `sudo` interativo; o
 modelo validado foi `qwen2.5:3b`, adequado aos recursos disponíveis nesta
-máquina. O Ciclo 2 permanece deliberadamente pendente até a autorização para
-iniciar o gateway e parear o WhatsApp.
+máquina. O Ciclo 2A fortaleceu o diagnóstico e o onboarding sem alterar o
+domínio financeiro. O próximo milestone de integração é o Ciclo 3, que ainda
+depende do gateway Hermes e do pareamento do WhatsApp.
 
-### P0 — fechar o milestone conversacional
+### Ciclo 2A — diagnóstico e onboarding
+
+Concluído em código e coberto por testes locais:
+
+1. validação do questionário alinhada aos campos obrigatórios e às opções;
+2. limpeza de respostas que deixam de ser aplicáveis;
+3. onboarding orientado sem bloquear o dashboard;
+4. edição de nome e fuso horário em Configurações;
+5. resumo determinístico em `GET /diagnostic/summary`;
+6. card de resumo no diagnóstico e no dashboard;
+7. documentação da decisão e dos limites de documentos.
+
+Antes de declarar o ciclo aceito, conferir manualmente o fluxo em desktop e
+mobile, incluindo rascunho, dívidas, edição e resumo.
+
+### Ciclo 3 — fechar o milestone conversacional
 
 1. Manter Ollama local (host ou container separado) com um modelo adequado a
    português e tool calling; o Ciclo 1 validou `qwen2.5:3b`.
@@ -65,6 +81,10 @@ iniciar o gateway e parear o WhatsApp.
   financeiros em logs.
 - Imports e automações mantendo a mesma regra de proveniência aplicada a web e
   WhatsApp.
+
+O histórico imutável de versões do diagnóstico, exportação/exclusão dos dados,
+painel de consultor e recebimento seguro de documentos ficam fora do MVP atual
+e só devem ser planejados depois de definir papéis, retenção e auditoria.
 
 Open Finance, OCR, investimentos avançados, cobrança e aplicativos nativos
 continuam fora do escopo deste MVP.

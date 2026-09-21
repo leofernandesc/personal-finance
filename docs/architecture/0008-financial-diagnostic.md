@@ -32,6 +32,11 @@ situação mudar.
   financeiro operacional.
 - A edição posterior acontece pela rota **Meu diagnóstico** e pelo painel de
   **Configurações**.
+- O perfil permite alterar nome e fuso horário sem reescrever diagnósticos já
+  concluídos.
+- Após a conclusão, `GET /diagnostic/summary` apresenta uma leitura
+  determinística das respostas, com valores calculados pelo backend e sem
+  recomendações de investimento.
 - A seção de documentos registra apenas disponibilidade e forma preferida de
   envio. O MVP não recebe arquivos e não deve receber credenciais.
 

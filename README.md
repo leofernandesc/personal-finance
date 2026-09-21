@@ -8,11 +8,12 @@ entregar a fonte de verdade a um modelo de linguagem.
 ## Estado atual
 
 O MVP web está implementado: autenticação local, diagnóstico financeiro
-editável, domínio financeiro, transferências, dashboard responsivo, relatórios,
-orçamentos e metas. O Ciclo 1 conversacional também foi validado localmente
-com Ollama, runner, FastAPI e PostgreSQL, incluindo idempotência e consultas
-reais. O round trip com uma sessão WhatsApp/Hermes/Baileys ainda não foi
-iniciado e não é tratado como concluído antecipadamente.
+editável, resumo determinístico do diagnóstico, edição de perfil, domínio
+financeiro, transferências, dashboard responsivo, relatórios, orçamentos e
+metas. O Ciclo 1 conversacional também foi validado localmente com Ollama,
+runner, FastAPI e PostgreSQL, incluindo idempotência e consultas reais. O
+round trip com uma sessão WhatsApp/Hermes/Baileys ainda não foi iniciado e não
+é tratado como concluído antecipadamente.
 
 O projeto não depende de serviços pagos. PostgreSQL, FastAPI, Next.js, Hermes e
 Ollama podem rodar localmente.
@@ -185,7 +186,8 @@ não duplica o usuário demo.
 
 1. Crie uma conta em `/register` ou use o usuário demo.
 2. Faça login em `/login`.
-3. Preencha o diagnóstico inicial ou salve para continuar depois.
+3. Preencha o diagnóstico inicial ou salve para continuar depois; ele não
+   bloqueia o restante da aplicação.
 4. Cadastre contas e, se necessário, ajuste categorias.
 5. Registre receitas, despesas e transferências em **Transações**.
 6. Consulte saldo, fluxo, categorias, orçamentos e metas no dashboard.
@@ -200,7 +202,12 @@ cartões, dívidas, patrimônio, metas, comportamento e disponibilidade.
 O formulário não recebe documentos nem credenciais. A seção de documentos
 apenas registra o que poderá ser disponibilizado futuramente por um canal
 seguro. O diagnóstico é informativo e não cria transações, contas ou metas
-automaticamente.
+automaticamente. Depois do envio, a aplicação apresenta um resumo calculado
+pelas respostas informadas. Ele não representa o saldo atual das contas e não
+é uma recomendação de investimento.
+
+O perfil permite alterar nome e fuso horário em **Configurações**. O e-mail de
+acesso permanece bloqueado nesta versão.
 
 ### Hermes + Ollama + WhatsApp
 
@@ -238,7 +245,7 @@ PYTHONPATH=. backend/.venv/bin/python -m agent.runner \
 
 O mesmo `--message-id` deve retornar `replayed=true` em uma repetição. Esse
 runner valida o Ciclo 1, mas não substitui o gateway nem inicia o pareamento do
-WhatsApp do Ciclo 2.
+WhatsApp do Ciclo 3.
 
 Antes de mandar mensagens, vincule o telefone autenticado ao usuário pela tela
 **Integrações**, ou pela API autenticada:
@@ -318,9 +325,10 @@ Todas as rotas de domínio estão sob `/api/v1`. As rotas web usam sessão local
 em cookie `HttpOnly`; a senha é armazenada com Argon2. As rotas do agente usam o
 segredo compartilhado e o telefone vinculado a um usuário.
 
-O diagnóstico usa `GET /diagnostic`, `PUT /diagnostic/draft` e
-`POST /diagnostic/submit`. Consentimentos são armazenados com versão e data, e
-as respostas ficam vinculadas ao usuário autenticado.
+O diagnóstico usa `GET /diagnostic`, `PUT /diagnostic/draft`,
+`POST /diagnostic/submit` e `GET /diagnostic/summary`. Consentimentos são
+armazenados com versão e data, e as respostas ficam vinculadas ao usuário
+autenticado. O perfil usa `PATCH /auth/me` para nome e fuso horário.
 
 O backend sempre aplica `user_id` derivado da autenticação. IDs enviados pelo
 frontend são usados somente como referências de recursos já autorizados. Toda
@@ -383,6 +391,8 @@ vazios, loading, erro e feedback de salvamento.
   constraints, auditoria por tool, proveniência e decisão sobre camadas.
 - [`docs/architecture/0008-financial-diagnostic.md`](docs/architecture/0008-financial-diagnostic.md):
   diagnóstico inicial, rascunho, consentimentos e edição posterior.
+- [`docs/architecture/0009-diagnostic-v1.1.md`](docs/architecture/0009-diagnostic-v1.1.md):
+  validação condicional, resumo determinístico, perfil e limites do MVP.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

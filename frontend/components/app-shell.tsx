@@ -64,12 +64,7 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
 }
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, signOut } = useAuth();
-  const router = useRouter();
-  const doSignOut = async () => {
-    await signOut();
-    router.replace("/login");
-  };
+  const { user } = useAuth();
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-white px-4 py-5">
       <Link href="/dashboard" className="mb-9 flex items-center px-3" onClick={onNavigate}>
@@ -94,12 +89,31 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <ChevronDown size={14} className="text-muted" />
         </div>
-        <Button variant="quiet" size="small" className="w-full justify-start" onClick={doSignOut}>
-          <LogOut size={15} /> Sair
-        </Button>
+        <SignOutButton onNavigate={onNavigate} className="w-full justify-start" />
       </div>
     </aside>
   );
+}
+
+function SignOutButton({ onNavigate, className = "" }: { onNavigate?: () => void; className?: string }) {
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const doSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      onNavigate?.();
+      router.replace("/login");
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
+  return <Button variant="secondary" size="small" className={className} onClick={doSignOut} disabled={signingOut} aria-label="Sair da conta">
+    <LogOut size={15} /> <span>{signingOut ? "Saindo…" : "Sair"}</span>
+  </Button>;
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -169,6 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {whatsappIdentity?.linked ? "Número vinculado" : "Vincular WhatsApp"}
               </Badge>
             </Link>
+            <SignOutButton className="inline-flex px-2 sm:px-3" />
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-xs font-bold text-white lg:hidden">{initials(user.full_name)}</span>
           </div>
         </header>

@@ -13,8 +13,8 @@ clareza, confiança e leitura rápida esperada em um produto financeiro.
 ## Decisão
 
 - O nome exibido no produto é **Organiza Finanças**.
-- A logo original fica versionada em `referências visuais/` e a cópia otimizada
-  para uso da aplicação fica em `frontend/public/logo-organiza-financas.png`.
+- A logo original fica versionada em `referências visuais/` e a cópia servida
+  pela aplicação fica em `frontend/public/logo-organiza-financas.png`.
 - O fundo principal permanece branco (`#ffffff`), evitando que o rosa da logo
   domine áreas de leitura financeira.
 - O marrom é a cor estrutural da marca: navegação, títulos, ações principais e

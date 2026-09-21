@@ -12,8 +12,9 @@ editável, resumo determinístico do diagnóstico, edição de perfil, domínio
 financeiro, transferências, dashboard responsivo, relatórios, orçamentos e
 metas. O Ciclo 1 conversacional também foi validado localmente com Ollama,
 runner, FastAPI e PostgreSQL, incluindo idempotência e consultas reais. O
-round trip com uma sessão WhatsApp/Hermes/Baileys ainda não foi iniciado e não
-é tratado como concluído antecipadamente.
+round trip com uma sessão WhatsApp/Hermes/Baileys ainda depende de um número
+controlado e não é tratado como concluído antecipadamente. O fluxo web
+essencial também possui E2E automatizado em Firefox desktop e mobile.
 
 O projeto não depende de serviços pagos. PostgreSQL, FastAPI, Next.js, Hermes e
 Ollama podem rodar localmente.
@@ -467,6 +468,22 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
+Teste de navegador, com o backend e o PostgreSQL disponíveis (o frontend é
+iniciado automaticamente se ainda não estiver rodando):
+
+```bash
+cd frontend
+npx playwright install firefox
+npm run test:e2e
+```
+
+O fluxo cria um usuário isolado por execução e percorre cadastro, duas contas,
+despesa, transferência, edição atômica da transferência, orçamento, meta e
+dashboard em duas viewports. Os dados de teste ficam no banco local; use um
+banco de desenvolvimento separado quando a execução não for descartável. O
+workflow do GitHub sobe uma stack temporária e instala o Firefox antes de
+executar o mesmo comando.
+
 Na raiz, `make check` reúne os checks do backend, agente e frontend. O workflow
 de CI repete essas verificações, aplica migrations em PostgreSQL 16 e usa
 `npm ci` para instalações reproduzíveis. O build valida as rotas App Router e o
@@ -494,6 +511,8 @@ vazios, loading, erro e feedback de salvamento.
   edição atômica das duas pernas de uma transferência.
 - [`docs/architecture/0014-cursor-pagination.md`](docs/architecture/0014-cursor-pagination.md):
   paginação estável do histórico sem offset.
+- [`docs/architecture/0015-browser-e2e.md`](docs/architecture/0015-browser-e2e.md):
+  estratégia de E2E web, isolamento e cobertura responsiva.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

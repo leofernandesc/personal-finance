@@ -23,13 +23,23 @@ type FormValues = z.infer<typeof schema>;
 export default function RegisterPage() {
   const router = useRouter();
   const { user, loading, signUp } = useAuth();
+  const [redirectingAfterRegistration, setRedirectingAfterRegistration] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { timezone: "America/Manaus" } });
-  React.useEffect(() => { if (!loading && user) router.replace("/dashboard"); }, [loading, router, user]);
+  React.useEffect(() => {
+    if (!loading && user && !redirectingAfterRegistration) router.replace("/dashboard");
+  }, [loading, redirectingAfterRegistration, router, user]);
   const onSubmit = async (values: FormValues) => {
     setError(null);
-    try { await signUp(values); router.replace("/diagnostico?inicio=1"); }
-    catch (reason) { setError(reason instanceof ApiError ? reason.message : "Não foi possível criar sua conta."); }
+    try {
+      setRedirectingAfterRegistration(true);
+      await signUp(values);
+      router.replace("/diagnostico?inicio=1");
+    }
+    catch (reason) {
+      setRedirectingAfterRegistration(false);
+      setError(reason instanceof ApiError ? reason.message : "Não foi possível criar sua conta.");
+    }
   };
   return <AuthFrame mode="register">
     <div className="mb-8"><p className="eyebrow">Comece leve</p><h1 className="mt-3 font-display text-4xl tracking-[-0.04em]">Crie seu espaço</h1><p className="mt-3 text-sm leading-6 text-muted">Em poucos passos, você já pode registrar o primeiro movimento.</p></div>

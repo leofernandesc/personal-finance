@@ -11,6 +11,8 @@ venv/
 node_modules/
 .next/
 out/
+frontend/playwright-report/
+frontend/test-results/
 coverage/
 htmlcov/
 *.log

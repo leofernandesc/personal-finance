@@ -81,3 +81,42 @@ jobs:
       - name: Audit production dependencies
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start application stack
+        run: |
+          cp .env.example .env
+          docker compose -p personal-finance-e2e up -d --build db backend frontend
+      - name: Wait for API and frontend
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/ready >/dev/null \
+              && curl --fail --silent http://127.0.0.1:3000/register >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -p personal-finance-e2e ps
+          exit 1
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps firefox
+      - name: Run browser flow tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Collect application logs on failure
+        if: failure()
+        run: docker compose -p personal-finance-e2e logs --no-color
+      - name: Stop application stack
+        if: always()
+        run: docker compose -p personal-finance-e2e down -v

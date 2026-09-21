@@ -77,14 +77,16 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
 
 ### P1 — qualidade do produto
 
-1. Adicionar testes E2E de navegador para cadastro, lançamento, transferência,
-   orçamento e meta em viewport desktop e mobile.
+1. Testes E2E de navegador para cadastro, lançamento, transferência, edição de
+   transferência, orçamento, meta e dashboard foram adicionados e passaram em
+   Firefox desktop e mobile; o workflow de CI também os executa em uma stack
+   temporária.
 2. Fazer auditoria manual de teclado, foco, leitor de tela e contraste.
 3. Paginação por cursor implementada no histórico da API e no botão “Carregar
-   mais” do frontend; falta apenas cobrir o fluxo visual com E2E de navegador.
-4. Fluxo explícito para editar uma transferência inteira implementado na API e
-   no formulário web, mantendo as duas pernas atômicas; falta apenas cobrir o
-   fluxo com E2E de navegador.
+   mais” do frontend; o fluxo principal de histórico continua coberto por
+   E2E, enquanto falta uma cobertura dedicada de múltiplas páginas.
+4. Fluxo explícito para editar uma transferência inteira implementado na API,
+   no formulário web e coberto pelo E2E, mantendo as duas pernas atômicas.
 
 ### P2 — evolução controlada
 

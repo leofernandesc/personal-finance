@@ -1,7 +1,7 @@
 PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 
-.PHONY: help setup up down logs migrate seed maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check cycle3-check cycle3-ready check
+.PHONY: help setup up down logs migrate seed maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check frontend-e2e cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -15,6 +15,7 @@ help:
 	@echo "db-backup       cria dump local não cifrado do PostgreSQL"
 	@echo "db-backup-check restaura um dump em banco temporário e verifica a estrutura"
 	@echo "db-restore      restaura dump com confirmação explícita (destrutivo)"
+	@echo "frontend-e2e     executa o fluxo Playwright em Firefox desktop/mobile"
 	@echo "check           executa todas as verificações locais"
 	@echo "cycle3-check    verifica backend, Ollama, Hermes e pareamento sem alterar estado"
 	@echo "cycle3-ready    exige todos os pré-requisitos do round trip WhatsApp"
@@ -87,5 +88,8 @@ frontend-check:
 	cd frontend && npm run lint
 	cd frontend && npm run typecheck
 	cd frontend && npm run build
+
+frontend-e2e:
+	cd frontend && npm run test:e2e
 
 check: backend-check agent-check frontend-check

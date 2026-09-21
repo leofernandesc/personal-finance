@@ -88,6 +88,22 @@ no Docker Compose:
 - `hermes plugins doctor ./agent --ci` confirmou import, registro de 14 tools e
   um hook.
 
+O E2E de navegador também passou localmente em 21/09/2026:
+
+- Playwright 1.63 com Firefox 155 foi instalado no host apenas como dependência
+  de desenvolvimento e navegador de teste, sem alterar o runtime financeiro;
+- o cenário `frontend/e2e/core-flow.spec.ts` passou em `desktop-firefox` e
+  `mobile-firefox`;
+- o cenário criou um usuário novo, abriu o diagnóstico após o cadastro, criou
+  Nubank e Inter, registrou uma despesa, criou e editou uma transferência,
+  criou orçamento e meta, e confirmou o saldo no dashboard;
+- o workflow de CI repete o cenário em uma stack Compose temporária e remove
+  seus volumes ao terminar.
+
+Durante essa validação foi corrigida uma corrida de navegação no cadastro: o
+efeito que protege a rota autenticada não pode sobrescrever o destino explícito
+do diagnóstico inicial.
+
 O fluxo operacional também foi exercitado com `make db-backup` e
 `make db-backup-check`: o dump custom foi validado por checksum, restaurado em
 um banco PostgreSQL temporário e consultou `users` e `alembic_version` antes de

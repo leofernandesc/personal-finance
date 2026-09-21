@@ -5,6 +5,7 @@ from app.api.v1 import (
     budgets,
     categories,
     dashboard,
+    diagnostic,
     goals,
     transactions,
     whatsapp,
@@ -19,6 +20,7 @@ API_ROUTERS = [
     budgets.router,
     goals.router,
     dashboard.router,
+    diagnostic.router,
     agent.router,
     whatsapp.router,
 ]

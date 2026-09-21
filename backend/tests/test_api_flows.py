@@ -183,3 +183,107 @@ def test_linking_a_new_whatsapp_number_replaces_the_previous_active_link(clients
         "phone_e164": "+5592999990002",
         "verified": False,
     }
+
+
+def diagnostic_answers(**overrides) -> dict:
+    answers = {
+        "full_name": "Pessoa de Diagnóstico",
+        "birth_date": "1990-05-10",
+        "contact_email": "diagnostico@example.com",
+        "phone": "+55 92 99999-0000",
+        "city_state": "Manaus - AM",
+        "occupation": "Profissional autônomo",
+        "financial_dependents": 0,
+        "main_difficulties": ["dont_know"],
+        "financial_priority": "organize",
+        "expected_result": "Saber para onde meu dinheiro está indo.",
+        "financial_organization_score": 2,
+        "organization_barriers": ["lack_of_planning"],
+        "monthly_net_income": "5000.00",
+        "income_sources": ["salary"],
+        "income_sufficiency": "break_even",
+        "tracks_expenses": "some",
+        "monthly_expenses": "4200.00",
+        "largest_expense_categories": ["housing", "food"],
+        "credit_card_count": 1,
+        "has_debts": "no",
+        "has_reserve": "no",
+        "financial_goals": ["emergency_fund"],
+        "most_important_goal": "Criar uma reserva de emergência",
+        "willing_to_track_expenses": "with_guidance",
+    }
+    answers.update(overrides)
+    return answers
+
+
+def test_diagnostic_draft_submission_edit_and_user_isolation(clients):
+    first, second = clients
+    register(first, "diagnostic@example.com")
+
+    initial = first.get("/api/v1/diagnostic")
+    assert initial.status_code == 200
+    assert initial.json()["status"] == "not_started"
+
+    draft = first.put(
+        "/api/v1/diagnostic/draft",
+        json={"current_section": 2, "answers": {"full_name": "Pessoa de Diagnóstico"}},
+    )
+    assert draft.status_code == 200, draft.text
+    assert draft.json()["status"] == "draft"
+    assert draft.json()["answers"]["full_name"] == "Pessoa de Diagnóstico"
+
+    without_consent = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": False,
+        },
+    )
+    assert without_consent.status_code == 422
+    assert "consentimentos" in without_consent.json()["detail"]
+
+    submitted = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+    assert submitted.status_code == 201, submitted.text
+    assert submitted.json()["status"] == "completed"
+    assert submitted.json()["completion_percent"] == 100
+
+    edited = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(expected_result="Ter uma rotina financeira mais leve."),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+    assert edited.status_code == 201, edited.text
+    assert edited.json()["answers"]["expected_result"] == "Ter uma rotina financeira mais leve."
+
+    register(second, "other-diagnostic@example.com")
+    other = second.get("/api/v1/diagnostic")
+    assert other.status_code == 200
+    assert other.json()["status"] == "not_started"
+    assert other.json()["answers"] == {}
+
+
+def test_diagnostic_requires_debt_details_when_user_has_debts(clients):
+    first, _second = clients
+    register(first, "debts-diagnostic@example.com")
+    response = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(has_debts="yes"),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "debt_types" in response.json()["detail"]

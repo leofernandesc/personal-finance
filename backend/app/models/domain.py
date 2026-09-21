@@ -15,6 +15,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -53,6 +54,42 @@ class User(Base):
     sessions: Mapped[list["AuthSession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    financial_diagnostic: Mapped["FinancialDiagnostic | None"] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+
+
+class FinancialDiagnostic(Base):
+    __tablename__ = "financial_diagnostics"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_financial_diagnostics_user"),
+        CheckConstraint(
+            "status IN ('draft', 'completed')", name="ck_financial_diagnostics_status"
+        ),
+        CheckConstraint(
+            "current_section BETWEEN 1 AND 13", name="ck_financial_diagnostics_section"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+    current_section: Mapped[int] = mapped_column(default=1)
+    version: Mapped[int] = mapped_column(default=1)
+    answers: Mapped[dict] = mapped_column(JSONB().with_variant(JSON(), "sqlite"), default=dict)
+    consent_data_processing: Mapped[bool] = mapped_column(Boolean, default=False)
+    consent_service_disclaimer: Mapped[bool] = mapped_column(Boolean, default=False)
+    consent_version: Mapped[str] = mapped_column(String(40), default="diagnostic-v1")
+    consented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    user: Mapped[User] = relationship(back_populates="financial_diagnostic")
 
 
 class AuthSession(Base):

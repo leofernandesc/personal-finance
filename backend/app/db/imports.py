@@ -6,6 +6,7 @@ from app.models import (  # noqa: F401
     AuthSession,
     Budget,
     Category,
+    FinancialDiagnostic,
     Goal,
     PendingAgentAction,
     Transaction,

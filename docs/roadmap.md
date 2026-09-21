@@ -46,12 +46,19 @@ mobile, incluindo rascunho, dívidas, edição e resumo.
 
 ### Ciclo 3 — fechar o milestone conversacional
 
+Estado atual: preparação técnica implementada; round trip ainda pendente.
+
 1. Manter Ollama local (host ou container separado) com um modelo adequado a
-   português e tool calling; o Ciclo 1 validou `qwen2.5:3b`.
-2. Instalar/configurar Hermes e validar o plugin com a versão real disponível.
-3. Parear uma sessão de desenvolvimento WhatsApp Web/Baileys.
-4. Executar os cenários M–R de ponta a ponta e anexar as evidências sanitizadas
-   ao documento de validação.
+   português, tool calling e janela mínima de 64.000 tokens. O Ciclo 1 validou
+   `qwen2.5:3b` no runner, mas o gateway deste host usará `llama3.2:3b`, com
+   janela de 131.072 tokens.
+2. Manter o plugin Hermes validado pela versão real disponível e o bridge
+   configurado em `127.0.0.1:3300`, separado do frontend em `3000`.
+3. Parear uma sessão de desenvolvimento WhatsApp Web/Baileys usando um número
+   controlado e manter a allowlist explícita.
+4. Fazer `make cycle3-ready` passar sem warnings.
+5. Executar os cenários M–R de ponta a ponta e anexar evidências sanitizadas ao
+   documento de validação.
 
 ### P1 — segurança operacional
 

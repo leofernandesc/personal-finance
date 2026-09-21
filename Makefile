@@ -1,7 +1,7 @@
 PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 
-.PHONY: help setup up down logs migrate seed backend-check agent-check frontend-check check
+.PHONY: help setup up down logs migrate seed backend-check agent-check frontend-check cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -11,6 +11,8 @@ help:
 	@echo "migrate         aplica as migrations no banco configurado"
 	@echo "seed            carrega os dados de demonstração"
 	@echo "check           executa todas as verificações locais"
+	@echo "cycle3-check    verifica backend, Ollama, Hermes e pareamento sem alterar estado"
+	@echo "cycle3-ready    exige todos os pré-requisitos do round trip WhatsApp"
 
 setup:
 	test -x $(PYTHON) || python3.12 -m venv backend/.venv
@@ -39,10 +41,16 @@ backend-check:
 	cd backend && .venv/bin/pytest -q
 
 agent-check:
-	cd backend && .venv/bin/ruff check ../agent
-	cd backend && .venv/bin/ruff format --check ../agent
+	backend/.venv/bin/ruff check agent
+	backend/.venv/bin/ruff format --check agent
 	PYTHONPATH=. $(PYTHON) -m pytest -q agent/tests
 	$(PYTHON) -m compileall -q backend/app agent
+
+cycle3-check:
+	PYTHONPATH=. $(PYTHON) -m agent.integration_check
+
+cycle3-ready:
+	PYTHONPATH=. $(PYTHON) -m agent.integration_check --strict
 
 frontend-check:
 	cd frontend && npm test

@@ -11,7 +11,9 @@ class AgentSettings:
         "http://127.0.0.1:8000/api/v1/integrations/agent",
     ).rstrip("/")
     shared_secret: str = os.getenv("AGENT_SHARED_SECRET", "change-me-in-development")
-    request_timeout_seconds: float = float(os.getenv("PERSONAL_FINANCE_AGENT_TIMEOUT", "15"))
+    request_timeout_seconds: float = float(
+        os.getenv("PERSONAL_FINANCE_AGENT_TIMEOUT", "15")
+    )
 
 
 def get_settings() -> AgentSettings:

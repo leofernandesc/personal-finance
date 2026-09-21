@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from .backend_client import AgentContext, BackendFinanceClient
-from .llm import LLMMessage, OllamaProvider
+from .llm import LLMMessage, LLMProvider, OllamaProvider, OpenAICompatibleProvider
 
 INTENT_SCHEMA = {
     "type": "object",
@@ -93,7 +93,7 @@ description=Almoço.
 """
 
 
-def interpret(text: str, provider: OllamaProvider) -> dict:
+def interpret(text: str, provider: LLMProvider) -> dict:
     messages = [
         LLMMessage(role="system", content=_interpretation_prompt()),
         LLMMessage(role="user", content=text),
@@ -132,7 +132,9 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
 
     tool = normalized.get("tool")
     normalized_text = text.casefold()
-    is_query = bool(re.search(r"\b(quanto|qual|quais|compare|comparar)\b", normalized_text))
+    is_query = bool(
+        re.search(r"\b(quanto|qual|quais|compare|comparar)\b", normalized_text)
+    )
     if (
         not is_query
         and re.search(r"\b(gastei|paguei|comprei|usei)\b", normalized_text)
@@ -150,7 +152,9 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
         and re.search(r"\b(transferi|transferência|transferencia)\b", normalized_text)
         and (tool != "create_transfer")
     ):
-        raise RuntimeError("A mensagem de transferência precisa virar uma transferência")
+        raise RuntimeError(
+            "A mensagem de transferência precisa virar uma transferência"
+        )
     if (
         is_query
         and re.search(r"\bquanto\s+gastei\s+com\b", normalized_text)
@@ -160,7 +164,9 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
     if re.search(
         r"\b(pelo|pela|na conta|no banco|usando)\b", normalized_text
     ) and not normalized.get("account_name"):
-        raise RuntimeError("A mensagem informou uma conta, mas a intenção não a extraiu")
+        raise RuntimeError(
+            "A mensagem informou uma conta, mas a intenção não a extraiu"
+        )
     if tool == "create_transaction":
         if normalized.get("type") not in {"income", "expense"}:
             raise RuntimeError("A intenção de transação não informou income ou expense")
@@ -170,11 +176,15 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
     elif tool == "create_transfer":
         amount = normalized.get("amount")
         if not isinstance(amount, (int, float)) or amount <= 0:
-            raise RuntimeError("A intenção de transferência não informou um valor positivo")
+            raise RuntimeError(
+                "A intenção de transferência não informou um valor positivo"
+            )
         if not normalized.get("source_account_name") or not normalized.get(
             "destination_account_name"
         ):
-            raise RuntimeError("A intenção de transferência não informou as duas contas")
+            raise RuntimeError(
+                "A intenção de transferência não informou as duas contas"
+            )
     elif tool == "get_category_summary" and not normalized.get("category_name"):
         raise RuntimeError("A consulta de categoria não informou a categoria")
     return normalized
@@ -183,7 +193,11 @@ def _normalize_intent(intent: dict, text: str = "") -> dict:
 def dispatch(intent: dict, context: AgentContext) -> str:
     client = BackendFinanceClient()
     tool = intent.get("tool")
-    payload = {key: value for key, value in intent.items() if key != "tool" and value is not None}
+    payload = {
+        key: value
+        for key, value in intent.items()
+        if key != "tool" and value is not None
+    }
     if tool == "create_transaction":
         return client.call("POST", "transactions", payload, context=context)
     if tool == "create_transfer":
@@ -206,20 +220,43 @@ def dispatch(intent: dict, context: AgentContext) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Smoke test Ollama -> Personal Finance API")
+    parser = argparse.ArgumentParser(
+        description="Smoke test Ollama -> Personal Finance API"
+    )
     parser.add_argument("text", help="Mensagem financeira em português")
     parser.add_argument("--sender", required=True, help="Número WhatsApp em E.164")
     parser.add_argument("--message-id", default="local-runner-message")
+    parser.add_argument(
+        "--provider",
+        choices=["ollama", "openai-compatible"],
+        default=os.getenv("LLM_PROVIDER", "ollama"),
+        help="Protocolo do servidor local de inferência.",
+    )
     parser.add_argument("--model", default=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"))
     parser.add_argument(
         "--ollama-url", default=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
     )
+    parser.add_argument(
+        "--openai-url",
+        default=os.getenv("LLM_BASE_URL", "http://127.0.0.1:11434/v1"),
+        help="Base URL /v1 para o provider OpenAI-compatible.",
+    )
+    parser.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     args = parser.parse_args()
-    provider = OllamaProvider(base_url=args.ollama_url, model=args.model)
+    if args.provider == "openai-compatible":
+        provider = OpenAICompatibleProvider(
+            base_url=args.openai_url,
+            model=args.model,
+            api_key=args.api_key,
+        )
+    else:
+        provider = OllamaProvider(base_url=args.ollama_url, model=args.model)
     intent = interpret(args.text, provider)
     result = dispatch(
         intent,
-        AgentContext(provider="whatsapp", sender_id=args.sender, message_id=args.message_id),
+        AgentContext(
+            provider="whatsapp", sender_id=args.sender, message_id=args.message_id
+        ),
     )
     print(
         json.dumps(

@@ -21,7 +21,9 @@ def test_backend_client_sends_identity_and_message_headers():
         api_base_url="http://api.test/integrations/agent", shared_secret="secret"
     )
     client = BackendFinanceClient(settings)
-    context = AgentContext(provider="whatsapp", sender_id="+5592999999999", message_id="wamid-1")
+    context = AgentContext(
+        provider="whatsapp", sender_id="+5592999999999", message_id="wamid-1"
+    )
 
     with patch("agent.backend_client.urlopen", return_value=FakeResponse()) as urlopen:
         response = client.call("POST", "transactions", {"amount": 25}, context=context)
@@ -45,7 +47,9 @@ def test_backend_client_refuses_unidentified_or_non_idempotent_calls():
         missing_sender = client.call(
             "GET",
             "balance",
-            context=AgentContext(provider="whatsapp", sender_id="", message_id="wamid-1"),
+            context=AgentContext(
+                provider="whatsapp", sender_id="", message_id="wamid-1"
+            ),
         )
         missing_message = client.call(
             "GET",

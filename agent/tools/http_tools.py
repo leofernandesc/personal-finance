@@ -131,7 +131,9 @@ TOOLS = [
     ),
     BackendTool(
         "get_categories",
-        _schema("get_categories", "Consulta categorias disponíveis do usuário.", {}, []),
+        _schema(
+            "get_categories", "Consulta categorias disponíveis do usuário.", {}, []
+        ),
         "GET",
         "categories",
     ),
@@ -228,9 +230,13 @@ def register_tools(ctx) -> None:
         def handler(params: dict, *, _tool=tool, **kwargs) -> str:
             if _tool.method == "GET":
                 if _tool.name == "get_transactions":
-                    return BackendFinanceClient().call("GET", f"transactions{_query(params)}")
+                    return BackendFinanceClient().call(
+                        "GET", f"transactions{_query(params)}"
+                    )
                 if _tool.name == "get_category_summary":
-                    return BackendFinanceClient().call("GET", f"category-summary{_query(params)}")
+                    return BackendFinanceClient().call(
+                        "GET", f"category-summary{_query(params)}"
+                    )
                 return BackendFinanceClient().call("GET", _tool.path)
             path = _tool.path
             if "{transaction_id}" in path:

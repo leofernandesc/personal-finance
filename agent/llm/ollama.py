@@ -36,9 +36,13 @@ class OllamaProvider:
 
     @staticmethod
     def _messages(messages: list[LLMMessage]) -> list[dict[str, str]]:
-        return [{"role": message.role, "content": message.content} for message in messages]
+        return [
+            {"role": message.role, "content": message.content} for message in messages
+        ]
 
-    def complete(self, messages: list[LLMMessage], *, tools: list[dict] | None = None) -> str:
+    def complete(
+        self, messages: list[LLMMessage], *, tools: list[dict] | None = None
+    ) -> str:
         payload = {
             "model": self.model,
             "messages": self._messages(messages),

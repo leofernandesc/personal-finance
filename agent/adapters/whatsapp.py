@@ -45,7 +45,9 @@ class BaileysWhatsAppProvider:
 
     def send(self, message: OutgoingMessage) -> None:
         del message
-        raise RuntimeError("O envio é realizado pelo adaptador de plataforma do Hermes.")
+        raise RuntimeError(
+            "O envio é realizado pelo adaptador de plataforma do Hermes."
+        )
 
     def stop(self) -> None:
         return None

@@ -31,7 +31,7 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 20/09/2026, passaram 30 testes de backend, 9 testes da fronteira
+Na revisão de 20/09/2026, passaram 30 testes de backend, 12 testes da fronteira
 do agente e 21 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edição
@@ -70,6 +70,39 @@ no Docker Compose:
   vulnerabilidades reportadas nas dependências auditadas;
 - `hermes plugins doctor ./agent --ci` confirmou import, registro de 13 tools e
   um hook.
+
+## Ciclo 3 — prontidão da integração local
+
+O verificador `make cycle3-check` foi adicionado para separar pré-requisitos
+locais de código já validado. Ele consulta somente endpoints de saúde, não lê o
+conteúdo das credenciais e não altera o banco.
+
+Na primeira execução deste ciclo, antes de subir o bridge:
+
+- backend e `hermes plugins doctor` passaram;
+- o endpoint OpenAI-compatible do Ollama foi encapsulado no provider
+  substituível do runner;
+- a API nativa do Ollama foi corrigida para consultar `/api/show` com `POST`;
+- o smoke runner continua usando `qwen2.5:3b`, cuja janela de 32.768 tokens fica
+  abaixo do mínimo de 64.000 exigido pelo Hermes atual; para o gateway, o host
+  agora possui `llama3.2:3b` com janela de 131.072 tokens e suporte a tool
+  calling;
+- uma sessão antiga de WhatsApp existe no host, porém o bridge ainda não está
+  rodando;
+- a porta do bridge foi fixada em `3300`, evitando o conflito observado com o
+  frontend em `3000`.
+
+Depois, o modelo `llama3.2:3b` foi baixado, a sessão Baileys subiu em `3300` e
+`make cycle3-check` confirmou backend, Ollama, plugin e bridge. A interpretação
+estruturada de “Gastei R$ 25 com almoço hoje.” também retornou a tool e os
+parâmetros esperados sem tocar no banco. O strict check continua exigindo uma
+allowlist explícita; a sessão local usada na validação ainda não foi autorizada
+para receber mensagens.
+
+Portanto, o Ciclo 3 ainda não é aceito como round trip. O aceite depende da
+allowlist, da inicialização do gateway Hermes e da execução dos cenários M–R
+com evidência sanitizada. `make cycle3-ready` deve passar somente depois desses
+pré-requisitos.
 
 O usuário demo usado nos testes é `demo@personal-finance.dev` / `demo1234`.
 Essas credenciais são somente para desenvolvimento local.
@@ -142,7 +175,9 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - Ollama precisa estar instalado e com um modelo baixado para validar a
   interpretação real em português. No Hermes, configure o endpoint local
   `http://127.0.0.1:11434/v1` e contexto mínimo de `64000`. O adaptador é local,
-  mas o binário não é empacotado neste repositório.
+  mas o binário não é empacotado neste repositório. O `qwen2.5:3b` validado no
+  runner não deve ser usado como modelo final do gateway porque sua janela é
+  menor.
 - O pareamento e a entrega efetiva pelo WhatsApp Web precisam de uma sessão
   Hermes/Baileys ativa e de um telefone previamente vinculado.
 - Docker Compose precisa de um daemon Docker acessível ao usuário para subir o

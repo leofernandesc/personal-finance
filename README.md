@@ -275,16 +275,40 @@ O doctor deve confirmar o manifesto, o import e as 13 tools. Execute o Hermes a
 partir da raiz do repositório para que o plugin local seja descoberto. Para uma
 instalação permanente fora do monorepo, copie `agent/` para
 `~/.hermes/plugins/personal-finance/` e habilite `personal-finance` com o CLI.
-No Hermes, habilite o toolset `personal_finance` para a plataforma WhatsApp
-conforme a configuração da sua instalação e inicie o gateway. A ponte
-WhatsApp/Web é responsabilidade do provider do canal; o domínio financeiro não
-conhece Baileys.
+No Hermes, habilite o toolset `personal_finance` para a plataforma WhatsApp e
+configure a porta do bridge fora da porta do frontend:
+
+```yaml
+plugins:
+  enabled:
+    - personal-finance
+platform_toolsets:
+  whatsapp:
+    - personal_finance
+platforms:
+  whatsapp:
+    enabled: false
+    extra:
+      bridge_port: 3300
+```
+
+O bridge usa `127.0.0.1:3300`; o frontend continua em `3000`. Mantenha o
+WhatsApp desativado até concluir o pareamento e conferir a allowlist.
+A ponte WhatsApp/Web é responsabilidade do Hermes/Baileys; o domínio
+financeiro não conhece Baileys.
+
+Antes de ativar o gateway, defina uma allowlist explícita para o número de
+desenvolvimento:
+
+```bash
+export WHATSAPP_ALLOWED_USERS=+5592XXXXXXXXX
+```
 
 Para Ollama:
 
 ```bash
 ollama serve
-ollama pull qwen2.5:7b
+ollama pull llama3.2:3b
 hermes model
 ```
 
@@ -293,15 +317,37 @@ No wizard `hermes model`, selecione **Custom endpoint** e configure:
 ```text
 Base URL:      http://127.0.0.1:11434/v1
 API key:       none
-Model:         qwen2.5:7b (ou o modelo baixado)
-Contexto:      64000
+Model:         llama3.2:3b
+Contexto:      64000 ou maior
 ```
 
 O endpoint customizado é o caminho usado pelo Hermes para chamadas OpenAI-
 compatible. O `agent/llm/ollama.py` usa a API nativa `/api/chat` no smoke runner
 e mantém a mesma fronteira `LLMProvider`. Para máquinas sem muita memória, um
-modelo menor pode ser usado alterando `OLLAMA_MODEL`, desde que ele suporte
-tool-calling e o contexto configurado.
+modelo menor pode ser usado no smoke runner alterando `OLLAMA_MODEL`; para o
+gateway, o modelo precisa suportar tool-calling e uma janela mínima de 64.000.
+Neste host, `llama3.2:3b` foi baixado e informa 131.072 tokens; o
+`qwen2.5:3b` validado no Ciclo 1 tem janela de 32.768 e permanece restrito ao
+runner.
+
+Antes de iniciar o gateway, execute as verificações somente leitura:
+
+```bash
+make cycle3-check
+make cycle3-ready
+```
+
+`cycle3-ready` só passa quando backend, modelo, plugin, sessão, bridge e
+allowlist estão prontos. O pareamento real exige QR code e deve ser feito com um número de
+desenvolvimento:
+
+```bash
+hermes whatsapp
+```
+
+Não comite `creds.json`, QR codes, tokens ou números reais. O código do projeto
+não inicia o gateway automaticamente e não considera o doctor ou o smoke runner
+como prova de entrega por WhatsApp.
 Trocar Ollama por outro servidor exige apenas implementar o protocolo
 `LLMProvider`; as tools e o backend não mudam.
 

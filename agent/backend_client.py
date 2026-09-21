@@ -57,7 +57,9 @@ class BackendFinanceClient:
             )
         if not ctx.message_id:
             return json.dumps(
-                {"error": "Não foi possível identificar a mensagem para garantir idempotência."},
+                {
+                    "error": "Não foi possível identificar a mensagem para garantir idempotência."
+                },
                 ensure_ascii=False,
             )
         headers = {
@@ -75,7 +77,9 @@ class BackendFinanceClient:
             method=method,
         )
         try:
-            with urlopen(request, timeout=self.settings.request_timeout_seconds) as response:
+            with urlopen(
+                request, timeout=self.settings.request_timeout_seconds
+            ) as response:
                 body = response.read().decode("utf-8")
                 return body or json.dumps({"ok": True})
         except HTTPError as exc:

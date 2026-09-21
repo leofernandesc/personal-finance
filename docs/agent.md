@@ -85,6 +85,26 @@ o canal, pareie o WhatsApp Web no fluxo de gateway do Hermes, habilite o toolset
 `personal_finance` para essa plataforma e mantenha o backend acessível no
 endereço configurado.
 
+No Hermes instalado neste ambiente, a configuração persistente equivalente é:
+
+```yaml
+plugins:
+  enabled:
+    - personal-finance
+platform_toolsets:
+  whatsapp:
+    - personal_finance
+platforms:
+  whatsapp:
+    enabled: false
+    extra:
+      bridge_port: 3300
+```
+
+O bridge usa `3300` para não disputar a porta `3000` do frontend. Mantenha
+`enabled: false` até concluir o pareamento manual e a validação do número; a
+configuração não liga o canal sozinha.
+
 ## Ollama
 
 ```bash
@@ -92,26 +112,60 @@ ollama serve
 ollama pull qwen2.5:3b
 ```
 
-Em máquinas com mais memória, `qwen2.5:7b` pode ser selecionado apenas
-alterando `OLLAMA_MODEL`. No ambiente local validado, `qwen2.5:3b` foi usado
-para manter o consumo compatível com o host.
+No ambiente local validado, `qwen2.5:3b` foi usado para manter o consumo
+compatível com o smoke runner. Esse modelo tem janela de 32.768 tokens e não
+atende ao requisito de 64.000 tokens do runtime Hermes atual. Neste host,
+`llama3.2:3b` está disponível com janela de 131.072 tokens e suporte a tool
+calling, por isso é o modelo recomendado para o gateway.
 
 O adaptador chama `POST /api/chat` e solicita JSON conforme schema. A escolha do
 modelo é configuração (`OLLAMA_MODEL`), não regra financeira. O prompt em
 `agent/prompts/system.md` instrui o modelo a consultar tools e nunca inventar
 contas, categorias, usuários ou cálculos.
 
-Para o Hermes gateway, configure o provider local pelo wizard:
+Para o Hermes gateway, configure o provider local pelo wizard somente depois de
+selecionar um modelo que passe no requisito de contexto:
 
 ```bash
 hermes model
 ```
 
 Selecione **Custom endpoint**, com `http://127.0.0.1:11434/v1`, uma chave
-placeholder como `none`, o nome do modelo baixado e contexto `64000`. O Hermes
+placeholder como `none`, o nome do modelo baixado e contexto `64000` ou maior. O Hermes
 faz as chamadas OpenAI-compatible para Ollama e usa as tools registradas pelo
 plugin; o adapter nativo em `agent/llm/ollama.py` é usado pelo runner isolado e
 permite trocar o provider sem contaminar o domínio.
+
+Antes do pareamento, execute a checagem somente leitura:
+
+```bash
+make cycle3-check
+```
+
+Use `make cycle3-ready` apenas como critério de aceite: ele retorna erro até o
+backend, o modelo com janela suficiente, o plugin e o bridge conectado estarem
+prontos. A checagem não lê o conteúdo de `creds.json` nem altera o banco.
+
+O pareamento real é manual e exige escanear o QR code com um número de
+desenvolvimento:
+
+```bash
+hermes whatsapp
+```
+
+Depois de parear, configure o modo do gateway, a allowlist de remetentes e
+ative o WhatsApp. Não comite a sessão, QR code, tokens ou números reais. O
+endpoint do bridge deve permanecer em `127.0.0.1:3300` nesta instalação.
+
+Para o aceite local, defina a allowlist no ambiente do Hermes antes de iniciar
+o gateway. Use o número em formato E.164, sem compartilhar o valor no código:
+
+```bash
+export WHATSAPP_ALLOWED_USERS=+5592XXXXXXXXX
+```
+
+O `make cycle3-ready` permanece em warning enquanto essa variável não existir,
+mesmo que a sessão Baileys esteja conectada.
 
 ## Smoke runner
 

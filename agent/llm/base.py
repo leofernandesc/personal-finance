@@ -20,7 +20,9 @@ class StructuredResult:
 class LLMProvider(Protocol):
     """Provider seam used by the standalone local runner and future adapters."""
 
-    def complete(self, messages: list[LLMMessage], *, tools: list[dict] | None = None) -> str: ...
+    def complete(
+        self, messages: list[LLMMessage], *, tools: list[dict] | None = None
+    ) -> str: ...
 
     def complete_structured(
         self,

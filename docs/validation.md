@@ -31,8 +31,8 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Na revisão de 20/09/2026, passaram 26 testes de backend, 3 testes da fronteira
-do agente e 13 testes de frontend. O backend cobre criação de receita/despesa,
+Na revisão de 20/09/2026, passaram 28 testes de backend, 3 testes da fronteira
+do agente e 17 testes de frontend. O backend cobre criação de receita/despesa,
 transferências com duas pernas, saldo, orçamento, Decimal, timezone, isolamento
 de usuário, idempotência, auditoria e fluxos HTTP. O plugin cobre o cliente HTTP,
 a recusa de contexto sem idempotência e o conjunto esperado de 13 tools.

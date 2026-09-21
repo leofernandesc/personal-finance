@@ -7,12 +7,12 @@ entregar a fonte de verdade a um modelo de linguagem.
 
 ## Estado atual
 
-O MVP web está implementado: autenticação local, domínio financeiro,
-transferências, dashboard responsivo, relatórios, orçamentos e metas. O Ciclo 1
-conversacional também foi validado localmente com Ollama, runner, FastAPI e
-PostgreSQL, incluindo idempotência e consultas reais. O round trip com uma
-sessão WhatsApp/Hermes/Baileys ainda não foi iniciado e não é tratado como
-concluído antecipadamente.
+O MVP web está implementado: autenticação local, diagnóstico financeiro
+editável, domínio financeiro, transferências, dashboard responsivo, relatórios,
+orçamentos e metas. O Ciclo 1 conversacional também foi validado localmente
+com Ollama, runner, FastAPI e PostgreSQL, incluindo idempotência e consultas
+reais. O round trip com uma sessão WhatsApp/Hermes/Baileys ainda não foi
+iniciado e não é tratado como concluído antecipadamente.
 
 O projeto não depende de serviços pagos. PostgreSQL, FastAPI, Next.js, Hermes e
 Ollama podem rodar localmente.
@@ -185,9 +185,22 @@ não duplica o usuário demo.
 
 1. Crie uma conta em `/register` ou use o usuário demo.
 2. Faça login em `/login`.
-3. Cadastre contas e, se necessário, ajuste categorias.
-4. Registre receitas, despesas e transferências em **Transações**.
-5. Consulte saldo, fluxo, categorias, orçamentos e metas no dashboard.
+3. Preencha o diagnóstico inicial ou salve para continuar depois.
+4. Cadastre contas e, se necessário, ajuste categorias.
+5. Registre receitas, despesas e transferências em **Transações**.
+6. Consulte saldo, fluxo, categorias, orçamentos e metas no dashboard.
+
+### Diagnóstico financeiro
+
+O diagnóstico fica disponível em **Meu diagnóstico** e em **Configurações**.
+Ele é dividido em etapas, salva rascunhos por seção e pode ser editado depois
+do envio. As respostas incluem consentimento, identificação, renda, despesas,
+cartões, dívidas, patrimônio, metas, comportamento e disponibilidade.
+
+O formulário não recebe documentos nem credenciais. A seção de documentos
+apenas registra o que poderá ser disponibilizado futuramente por um canal
+seguro. O diagnóstico é informativo e não cria transações, contas ou metas
+automaticamente.
 
 ### Hermes + Ollama + WhatsApp
 
@@ -305,6 +318,10 @@ Todas as rotas de domínio estão sob `/api/v1`. As rotas web usam sessão local
 em cookie `HttpOnly`; a senha é armazenada com Argon2. As rotas do agente usam o
 segredo compartilhado e o telefone vinculado a um usuário.
 
+O diagnóstico usa `GET /diagnostic`, `PUT /diagnostic/draft` e
+`POST /diagnostic/submit`. Consentimentos são armazenados com versão e data, e
+as respostas ficam vinculadas ao usuário autenticado.
+
 O backend sempre aplica `user_id` derivado da autenticação. IDs enviados pelo
 frontend são usados somente como referências de recursos já autorizados. Toda
 consulta financeira filtra por usuário, e transações repetidas de WhatsApp usam
@@ -364,6 +381,8 @@ vazios, loading, erro e feedback de salvamento.
   fluxo comprovável de tool call, idempotência e operação local.
 - [`docs/architecture/0005-integrity-and-architecture-review.md`](docs/architecture/0005-integrity-and-architecture-review.md):
   constraints, auditoria por tool, proveniência e decisão sobre camadas.
+- [`docs/architecture/0008-financial-diagnostic.md`](docs/architecture/0008-financial-diagnostic.md):
+  diagnóstico inicial, rascunho, consentimentos e edição posterior.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

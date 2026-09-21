@@ -11,6 +11,7 @@ dependem de processos externos. “Código pronto” não significa “canal val
 | C–G. Contas, categorias, receitas, despesas e transferências | Concluído | API, UI e testes de saldo/duas pernas |
 | H–J. Dashboard, saldo e gastos por categoria | Concluído | dashboard responsivo e cálculos no backend |
 | K–L. Orçamentos e metas | Concluído | CRUD essencial, progresso e agregação de subcategorias |
+| Diagnóstico inicial e edição posterior | Concluído | 13 etapas, 69 perguntas, rascunho por etapa, consentimento e isolamento por usuário |
 | M–O. Mensagem WhatsApp cria despesa e atualiza dashboard | Ciclo 1 concluído; canal pendente | Ollama + runner, tool, FastAPI, PostgreSQL e idempotência validados; falta sessão Hermes/Baileys real |
 | P–Q. Consulta de transporte responde com dados reais | Ciclo 1 concluído; canal pendente | `get_category_summary` retornou `R$ 78,00` pelo backend; falta round trip no WhatsApp real |
 | R. Reentrega não duplica transação | Concluído no backend | chave por usuário/mensagem e teste em PostgreSQL |

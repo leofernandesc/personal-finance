@@ -7,6 +7,8 @@ from pydantic import EmailStr, Field, field_validator, model_validator
 from app.schemas.common import APIModel, validate_money
 
 DiagnosticStatus = Literal["not_started", "draft", "completed"]
+DiagnosticSummaryStatus = Literal["not_ready", "completed"]
+DiagnosticSignalLevel = Literal["positive", "attention", "priority", "info"]
 
 
 def _empty_to_none(value: Any) -> Any:
@@ -38,6 +40,18 @@ CHOICES: dict[str, set[str]] = {
         "prefer_not_to_say",
     },
     "organization_type": {"individual", "couple", "family"},
+    "financial_priority": {
+        "debt_free",
+        "organize",
+        "reduce_expenses",
+        "emergency_fund",
+        "start_saving",
+        "buy_asset",
+        "family_finances",
+        "separate_business",
+        "important_change",
+        "other",
+    },
     "improvement_timeline": {
         "up_to_3_months",
         "four_to_six_months",
@@ -244,6 +258,14 @@ LIST_CHOICE_FIELDS: dict[str, set[str]] = {
     "meeting_availability": {"morning", "afternoon", "evening", "saturday"},
 }
 
+EXCLUSIVE_LIST_CHOICES: dict[str, set[str]] = {
+    "current_tool": {"none"},
+    "seasonal_expenses": {"none_or_planned"},
+    "assets": {"no_relevant_assets", "discuss_in_meeting"},
+    "possible_changes": {"not_sure"},
+    "available_documents": {"need_to_organize"},
+}
+
 
 class DiagnosticAnswers(APIModel):
     full_name: str | None = Field(default=None, max_length=120)
@@ -382,6 +404,9 @@ class DiagnosticAnswers(APIModel):
             value = getattr(self, field_name)
             if value is not None and any(item not in allowed for item in value):
                 raise ValueError(f"Opção inválida em {field_name}")
+            exclusive = EXCLUSIVE_LIST_CHOICES.get(field_name, set())
+            if value and exclusive.intersection(value) and len(value) > 1:
+                raise ValueError(f"Escolha apenas uma opção em {field_name}")
         return self
 
     def validate_submission(self) -> "DiagnosticAnswers":
@@ -399,6 +424,7 @@ class DiagnosticAnswers(APIModel):
             "financial_organization_score",
             "organization_barriers",
             "monthly_net_income",
+            "family_monthly_net_income",
             "income_sources",
             "income_sufficiency",
             "tracks_expenses",
@@ -447,14 +473,19 @@ class DiagnosticAnswers(APIModel):
             ),
             (self.seasonal_expenses, self.seasonal_expenses_other, "seasonal_expenses_other"),
             (self.debt_types, self.debt_types_other, "debt_types_other"),
-            (self.assets, self.assets_other, "assets_other"),
+            (self.assets, self.assets_other, "assets_other", "other_assets"),
             (self.financial_goals, self.financial_goals_other, "financial_goals_other"),
             (self.possible_changes, self.possible_changes_other, "possible_changes_other"),
-            (self.available_documents, self.available_documents_other, "available_documents_other"),
         )
-        for values, other, field_name in other_pairs:
-            if values and "other" in values and not self._has_answer(other):
+        for pair in other_pairs:
+            values, other, field_name, *trigger = pair
+            trigger_value = trigger[0] if trigger else "other"
+            if values and trigger_value in values and not self._has_answer(other):
                 raise ValueError(f"Preencha {field_name} quando escolher Outra opção")
+        if self.financial_priority == "other" and not self._has_answer(
+            self.financial_priority_other
+        ):
+            raise ValueError("Preencha financial_priority_other quando escolher Outra opção")
         if self.unexpected_expense_strategy == "other" and not self._has_answer(
             self.unexpected_expense_other
         ):
@@ -500,3 +531,35 @@ class DiagnosticResponse(APIModel):
     consented_at: datetime | None
     completed_at: datetime | None
     updated_at: datetime | None
+
+
+class DiagnosticSummaryMetrics(APIModel):
+    monthly_income: str | None
+    family_monthly_income: str | None
+    monthly_expenses: str | None
+    monthly_margin: str | None
+    total_debt: str | None
+    monthly_debt_installments: str | None
+    reserve_amount: str | None
+    financial_score: int | None
+
+
+class DiagnosticSummarySignal(APIModel):
+    level: DiagnosticSignalLevel
+    title: str
+    description: str
+
+
+class DiagnosticSummaryNextStep(APIModel):
+    priority: int = Field(ge=1, le=3)
+    title: str
+    description: str
+
+
+class DiagnosticSummaryResponse(APIModel):
+    status: DiagnosticSummaryStatus
+    snapshot_date: datetime | None
+    metrics: DiagnosticSummaryMetrics
+    signals: list[DiagnosticSummarySignal]
+    next_steps: list[DiagnosticSummaryNextStep]
+    basis: Literal["self_reported_diagnostic", "not_ready"]

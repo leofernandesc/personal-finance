@@ -4,6 +4,7 @@ import type {
   Category,
   DashboardData,
   Diagnostic,
+  DiagnosticSummary,
   Goal,
   ReportData,
   SourceType,
@@ -47,7 +48,12 @@ async function request<T>(path: string, init: RequestInit = {}) {
     }
     const detailObject = detail as { detail?: unknown } | undefined;
     const nested = detailObject?.detail;
-    const message = typeof nested === "string" ? nested : "Não foi possível concluir a operação.";
+    const nestedObject = nested as { message?: unknown } | undefined;
+    const message = typeof nested === "string"
+      ? nested
+      : typeof nestedObject?.message === "string"
+        ? nestedObject.message
+        : "Não foi possível concluir a operação.";
     throw new ApiError(response.status, message, nested);
   }
   if (response.status === 204) return undefined as T;
@@ -61,11 +67,13 @@ const json = (method: string, body?: unknown): RequestInit => ({
 
 export const api = {
   me: () => request<User>("/auth/me"),
+  updateProfile: (body: { full_name?: string; timezone?: string }) => request<User>("/auth/me", json("PATCH", body)),
   login: (body: { email: string; password: string }) => request<{ user: User }>("/auth/login", json("POST", body)),
   register: (body: { email: string; password: string; full_name: string; timezone: string }) =>
     request<{ user: User }>("/auth/register", json("POST", body)),
   logout: () => request<{ message: string }>("/auth/logout", json("POST")),
   diagnostic: () => request<Diagnostic>("/diagnostic"),
+  diagnosticSummary: () => request<DiagnosticSummary>("/diagnostic/summary"),
   saveDiagnosticDraft: (body: { current_section: number; answers: Record<string, unknown> }) =>
     request<Diagnostic>("/diagnostic/draft", json("PUT", body)),
   submitDiagnostic: (body: {

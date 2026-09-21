@@ -18,6 +18,27 @@ const optionalDate = z.string().optional().refine((value) => {
 }, "Informe uma data válida que não esteja no futuro.");
 const choices = () => z.array(z.string()).optional();
 
+const financialPriorityValues = [
+  "debt_free",
+  "organize",
+  "reduce_expenses",
+  "emergency_fund",
+  "start_saving",
+  "buy_asset",
+  "family_finances",
+  "separate_business",
+  "important_change",
+  "other",
+] as const;
+
+export const exclusiveDiagnosticChoices: Record<string, string[]> = {
+  current_tool: ["none"],
+  seasonal_expenses: ["none_or_planned"],
+  assets: ["no_relevant_assets", "discuss_in_meeting"],
+  possible_changes: ["not_sure"],
+  available_documents: ["need_to_organize"],
+};
+
 export const diagnosticSchema = z.object({
   consent_data_processing: z.boolean().optional(),
   consent_service_disclaimer: z.boolean().optional(),
@@ -34,7 +55,7 @@ export const diagnosticSchema = z.object({
 
   main_difficulties: choices(),
   main_difficulties_other: optionalText(240),
-  financial_priority: optionalText(40),
+  financial_priority: z.union([z.enum(financialPriorityValues), z.literal("")]).optional(),
   financial_priority_other: optionalText(240),
   expected_result: optionalText(2000),
   improvement_timeline: optionalText(40),
@@ -123,6 +144,41 @@ export const diagnosticSchema = z.object({
   if (values.has_debts === "yes" && !values.total_debt_amount) {
     context.addIssue({ code: "custom", path: ["total_debt_amount"], message: "Informe o valor aproximado das dívidas." });
   }
+  const otherFields: Array<[string[], string | undefined, string, string]> = [
+    [values.main_difficulties ?? [], values.main_difficulties_other, "main_difficulties_other", "other"],
+    [values.organization_barriers ?? [], values.organization_barriers_other, "organization_barriers_other", "other"],
+    [values.income_sources ?? [], values.income_sources_other, "income_sources_other", "other"],
+    [values.current_tool ?? [], values.current_tool_other, "current_tool_other", "other"],
+    [values.largest_expense_categories ?? [], values.largest_expense_categories_other, "largest_expense_categories_other", "other"],
+    [values.seasonal_expenses ?? [], values.seasonal_expenses_other, "seasonal_expenses_other", "other"],
+    [values.debt_types ?? [], values.debt_types_other, "debt_types_other", "other"],
+    [values.assets ?? [], values.assets_other, "assets_other", "other_assets"],
+    [values.financial_goals ?? [], values.financial_goals_other, "financial_goals_other", "other"],
+    [values.possible_changes ?? [], values.possible_changes_other, "possible_changes_other", "other"],
+  ];
+  otherFields.forEach(([selected, detail, detailField, trigger]) => {
+    if (selected.includes(trigger) && !detail?.trim()) {
+      context.addIssue({ code: "custom", path: [detailField], message: "Descreva a outra opção." });
+    }
+  });
+  if (values.financial_priority === "other" && !values.financial_priority_other?.trim()) {
+    context.addIssue({ code: "custom", path: ["financial_priority_other"], message: "Descreva a outra opção." });
+  }
+  if (values.unexpected_expense_strategy === "other" && !values.unexpected_expense_other?.trim()) {
+    context.addIssue({ code: "custom", path: ["unexpected_expense_other"], message: "Descreva a outra opção." });
+  }
+  if (values.document_delivery_preference === "other" && !values.document_delivery_other?.trim()) {
+    context.addIssue({ code: "custom", path: ["document_delivery_other"], message: "Descreva a outra opção." });
+  }
+  if (values.how_found_service === "other" && !values.how_found_service_other?.trim()) {
+    context.addIssue({ code: "custom", path: ["how_found_service_other"], message: "Descreva a outra opção." });
+  }
+  Object.entries(exclusiveDiagnosticChoices).forEach(([field, exclusive]) => {
+    const selected = values[field as keyof DiagnosticFormValues];
+    if (Array.isArray(selected) && selected.some((item) => exclusive.includes(item)) && selected.length > 1) {
+      context.addIssue({ code: "custom", path: [field], message: "Escolha apenas uma opção." });
+    }
+  });
 });
 
 export type DiagnosticFormValues = z.infer<typeof diagnosticSchema>;
@@ -168,6 +224,18 @@ export const options: Record<string, Option[]> = {
     { value: "seven_to_twelve_months", label: "De 7 a 12 meses" },
     { value: "over_twelve_months", label: "Mais de 12 meses" },
     { value: "not_sure", label: "Ainda não sei" },
+  ],
+  financial_priority: [
+    { value: "debt_free", label: "Sair das dívidas" },
+    { value: "organize", label: "Organizar as contas" },
+    { value: "reduce_expenses", label: "Reduzir despesas" },
+    { value: "emergency_fund", label: "Criar uma reserva de emergência" },
+    { value: "start_saving", label: "Começar a guardar dinheiro" },
+    { value: "buy_asset", label: "Comprar um bem" },
+    { value: "family_finances", label: "Organizar as finanças familiares" },
+    { value: "separate_business", label: "Separar as finanças pessoais das empresariais" },
+    { value: "important_change", label: "Planejar uma mudança importante" },
+    { value: "other", label: "Outro" },
   ],
   income_type: [
     { value: "fixed", label: "Fixa" },
@@ -361,7 +429,7 @@ export const sectionRequiredFields: Record<number, DiagnosticField[]> = {
   1: ["consent_data_processing", "consent_service_disclaimer"],
   2: ["full_name", "birth_date", "contact_email", "phone", "city_state", "occupation", "financial_dependents"],
   3: ["main_difficulties", "financial_priority", "expected_result", "financial_organization_score", "organization_barriers"],
-  4: ["monthly_net_income", "income_sources", "income_sufficiency"],
+  4: ["monthly_net_income", "family_monthly_net_income", "income_sources", "income_sufficiency"],
   5: ["tracks_expenses", "monthly_expenses", "largest_expense_categories"],
   6: ["credit_card_count"],
   7: ["has_debts"],
@@ -397,9 +465,60 @@ export function valuesFromDiagnostic(answers: Record<string, unknown>): Partial<
   })) as Partial<DiagnosticFormValues>;
 }
 
+export function visibleDiagnosticSections(hasDebts: unknown): number[] {
+  return hasDebts === "no" ? [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13] : Array.from({ length: 13 }, (_, index) => index + 1);
+}
+
+export function normalizeDiagnosticValues(values: Partial<DiagnosticFormValues>): Partial<DiagnosticFormValues> {
+  const normalized = { ...values };
+  const remove = (...fields: DiagnosticField[]) => fields.forEach((field) => delete normalized[field]);
+
+  if (normalized.has_debts === "no") {
+    remove("debt_types", "debt_types_other", "total_debt_amount", "monthly_debt_installments", "has_overdue_debt", "has_negative_record", "main_debts_details", "tried_debt_negotiation");
+  }
+  if (normalized.extra_income === "no") remove("extra_income_details");
+  if (normalized.credit_card_count === "0") remove("total_card_limit", "average_card_bill", "pays_card_in_full", "knows_installments");
+  if (normalized.has_reserve === "no") remove("reserve_amount", "reserve_months");
+  if (normalized.can_save_monthly === "no") remove("average_monthly_saving");
+  if (normalized.has_goal_savings === "no") remove("goal_saved_amount");
+  remove("available_documents_other");
+
+  const otherDependencies: Array<[DiagnosticField, DiagnosticField, string]> = [
+    ["main_difficulties", "main_difficulties_other", "other"],
+    ["organization_barriers", "organization_barriers_other", "other"],
+    ["income_sources", "income_sources_other", "other"],
+    ["current_tool", "current_tool_other", "other"],
+    ["largest_expense_categories", "largest_expense_categories_other", "other"],
+    ["seasonal_expenses", "seasonal_expenses_other", "other"],
+    ["debt_types", "debt_types_other", "other"],
+    ["assets", "assets_other", "other_assets"],
+    ["financial_goals", "financial_goals_other", "other"],
+    ["possible_changes", "possible_changes_other", "other"],
+  ];
+  otherDependencies.forEach(([source, detail, trigger]) => {
+    const value = normalized[source];
+    const selected = Array.isArray(value) ? value.includes(trigger) : value === trigger;
+    if (!selected) remove(detail);
+  });
+  if (normalized.financial_priority !== "other") remove("financial_priority_other");
+  if (normalized.unexpected_expense_strategy !== "other") remove("unexpected_expense_other");
+  if (normalized.document_delivery_preference !== "other") remove("document_delivery_other");
+  if (normalized.how_found_service !== "other") remove("how_found_service_other");
+
+  return normalized;
+}
+
+export function requiredFieldsForSubmission(values: DiagnosticFormValues): DiagnosticField[] {
+  const fields = Object.entries(sectionRequiredFields)
+    .filter(([section]) => section !== "8" || values.has_debts === "yes")
+    .flatMap(([, sectionFields]) => sectionFields);
+  return [...new Set(fields)];
+}
+
 export function answersFromForm(values: DiagnosticFormValues): Record<string, unknown> {
+  const normalized = normalizeDiagnosticValues(values);
   return Object.fromEntries(
-    Object.entries(values)
+    Object.entries(normalized)
       .filter(([key]) => !key.startsWith("consent_"))
       .map(([key, value]) => [key, value === "" ? null : value]),
   );

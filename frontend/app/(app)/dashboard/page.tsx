@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/p
 import { TransactionLink, TransactionList } from "@/components/transaction-list";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, Progress } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { DashboardData } from "@/lib/types";
+import type { DashboardData, DiagnosticSummary } from "@/lib/types";
 import { accountTypeLabels, formatDate, money, monthLabel, numberValue, percent, todayForTimezone } from "@/lib/utils";
 
 const categoryColors = ["#76584e", "#e8b8b8", "#a87565", "#c99a8f", "#8e6e62", "#b9787d"];
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [diagnosticSummary, setDiagnosticSummary] = useState<DiagnosticSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export default function DashboardPage() {
     try { setData(await api.dashboard()); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível carregar o dashboard."); } finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { api.diagnosticSummary().then(setDiagnosticSummary).catch(() => setDiagnosticSummary(null)); }, []);
 
   const today = todayForTimezone(user?.timezone);
   const firstName = user?.full_name?.split(" ")[0] || "por aí";
@@ -58,6 +60,8 @@ export default function DashboardPage() {
         <Card className="overflow-hidden"><CardHeader><div><p className="eyebrow">Planejamento</p><CardTitle className="mt-1">Orçamentos do mês</CardTitle><CardDescription>Quanto já foi usado em cada limite.</CardDescription></div><Link href="/budgets" className="text-xs font-semibold text-moss hover:text-navy">Gerenciar</Link></CardHeader>{data.budgets.length ? <div className="divide-y divide-line">{data.budgets.slice(0, 4).map((budget) => { const used = numberValue(budget.utilization_percent); return <div key={budget.id} className="px-5 py-4 md:px-6"><div className="mb-2 flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-ink">{budget.category_name}</p><p className="mt-0.5 text-xs text-muted">{money(budget.spent_amount)} de {money(budget.limit_amount)}</p></div><span className={`text-xs font-semibold ${used > 100 ? "text-rust" : "text-ink"}`}>{percent(used)}</span></div><Progress value={used} tone={used > 100 ? "rust" : "moss"} /><div className="mt-2 flex justify-between text-[0.68rem] text-muted"><span>{numberValue(budget.remaining_amount) >= 0 ? `${money(budget.remaining_amount)} restantes` : `${money(budget.exceeded_amount)} acima do limite`}</span><span>{monthLabel(budget.month)}</span></div></div> })}</div> : <EmptyState compact title="Orçamento à vista" description="Defina limites por categoria para dar uma intenção ao seu mês." actionLabel="Criar orçamento" onAction={() => router.push("/budgets")} />}</Card>
         <Card className="overflow-hidden"><CardHeader><div><p className="eyebrow">Últimos movimentos</p><CardTitle className="mt-1">Transações recentes</CardTitle><CardDescription>O que acabou de acontecer.</CardDescription></div><TransactionLink /></CardHeader>{data.recent_transactions.length ? <TransactionList transactions={data.recent_transactions} compact /> : <EmptyState compact title="Ainda não existem transações" description="Você também pode registrar pelo WhatsApp." actionLabel="Registrar primeira" onAction={() => router.push("/transactions?new=1")} />}</Card>
       </section>
+
+      {diagnosticSummary?.status === "completed" && <section><Card className="overflow-hidden"><CardHeader><div><p className="eyebrow">Seu ponto de partida</p><CardTitle className="mt-1">O que merece atenção</CardTitle><CardDescription>Uma leitura das respostas do seu diagnóstico.</CardDescription></div><Link href="/diagnostico" className="text-xs font-semibold text-moss hover:text-navy">Ver diagnóstico</Link></CardHeader><div className="grid gap-3 px-5 pb-6 sm:grid-cols-3 md:px-6"><div className="rounded-xl bg-paper p-4"><p className="text-xs text-muted">Margem informada</p><p className="mt-2 font-display text-xl text-ink">{diagnosticSummary.metrics.monthly_margin ? money(diagnosticSummary.metrics.monthly_margin) : "—"}</p></div><div className="rounded-xl bg-paper p-4"><p className="text-xs text-muted">Dívidas informadas</p><p className="mt-2 font-display text-xl text-ink">{diagnosticSummary.metrics.total_debt ? money(diagnosticSummary.metrics.total_debt) : "—"}</p></div><div className="rounded-xl bg-brand-pink-soft p-4"><p className="text-xs text-brand-brown">Próximo foco</p><p className="mt-2 text-sm font-semibold text-brand-brown-dark">{diagnosticSummary.next_steps[0]?.title ?? "Continue acompanhando seu mês"}</p></div></div></Card></section>}
 
       <section><div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">Panorama</p><h2 className="mt-1 font-display text-2xl tracking-[-0.03em]">Suas contas</h2></div><Link href="/accounts" className="text-xs font-semibold text-moss hover:text-navy">Ver contas</Link></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{data.accounts.map((account) => <Card key={account.id} className="flex items-center gap-4 p-5"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-paper text-navy"><WalletCards size={19} /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-ink">{account.name}</p><p className="mt-1 text-xs text-muted">{accountTypeLabels[account.account_type] || account.account_type}</p></div><p className="text-sm font-semibold text-ink">{money(account.balance)}</p><MoreHorizontal size={17} className="text-muted" /></Card>)}</div></section>
     </div>}

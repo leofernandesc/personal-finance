@@ -8,8 +8,14 @@ from app.schemas.diagnostic import (
     DiagnosticDraftRequest,
     DiagnosticResponse,
     DiagnosticSubmitRequest,
+    DiagnosticSummaryResponse,
 )
-from app.services.diagnostic import get_diagnostic, save_draft, submit_diagnostic
+from app.services.diagnostic import (
+    diagnostic_summary,
+    get_diagnostic,
+    save_draft,
+    submit_diagnostic,
+)
 
 router = APIRouter(prefix="/diagnostic", tags=["diagnostic"])
 
@@ -19,6 +25,13 @@ def read_diagnostic(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> DiagnosticResponse:
     return get_diagnostic(db, user)
+
+
+@router.get("/summary", response_model=DiagnosticSummaryResponse)
+def read_diagnostic_summary(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> DiagnosticSummaryResponse:
+    return diagnostic_summary(db, user)
 
 
 @router.put("/draft", response_model=DiagnosticResponse)

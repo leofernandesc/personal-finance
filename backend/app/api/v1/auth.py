@@ -16,7 +16,13 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models import AuthSession, User
-from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, UserResponse
+from app.schemas.auth import (
+    AuthResponse,
+    LoginRequest,
+    ProfileUpdateRequest,
+    RegisterRequest,
+    UserResponse,
+)
 from app.services.seed import seed_categories
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -100,4 +106,19 @@ def logout(
 
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    payload: ProfileUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if payload.full_name is not None:
+        user.full_name = payload.full_name
+    if payload.timezone is not None:
+        user.timezone = _validate_timezone(payload.timezone)
+    db.commit()
+    db.refresh(user)
     return user

@@ -29,6 +29,30 @@ export type Diagnostic = {
   updated_at: string | null;
 };
 
+export type DiagnosticSummarySignal = {
+  level: "positive" | "attention" | "priority" | "info";
+  title: string;
+  description: string;
+};
+
+export type DiagnosticSummary = {
+  status: "not_ready" | "completed";
+  snapshot_date: string | null;
+  metrics: {
+    monthly_income: string | null;
+    family_monthly_income: string | null;
+    monthly_expenses: string | null;
+    monthly_margin: string | null;
+    total_debt: string | null;
+    monthly_debt_installments: string | null;
+    reserve_amount: string | null;
+    financial_score: number | null;
+  };
+  signals: DiagnosticSummarySignal[];
+  next_steps: Array<{ priority: number; title: string; description: string }>;
+  basis: "self_reported_diagnostic" | "not_ready";
+};
+
 export type Account = {
   id: string;
   name: string;

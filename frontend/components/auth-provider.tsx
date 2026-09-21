@@ -9,6 +9,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<User>;
   signUp: (payload: { email: string; password: string; full_name: string; timezone: string }) => Promise<User>;
+  updateProfile: (payload: { full_name?: string; timezone?: string }) => Promise<User>;
   signOut: () => Promise<void>;
 };
 
@@ -35,6 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await api.register(payload);
         setUser(response.user);
         return response.user;
+      },
+      updateProfile: async (payload) => {
+        const updated = await api.updateProfile(payload);
+        setUser(updated);
+        return updated;
       },
       signOut: async () => {
         await api.logout();

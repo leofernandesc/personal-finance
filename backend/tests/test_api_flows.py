@@ -200,6 +200,7 @@ def diagnostic_answers(**overrides) -> dict:
         "financial_organization_score": 2,
         "organization_barriers": ["lack_of_planning"],
         "monthly_net_income": "5000.00",
+        "family_monthly_net_income": "5000.00",
         "income_sources": ["salary"],
         "income_sufficiency": "break_even",
         "tracks_expenses": "some",
@@ -287,3 +288,80 @@ def test_diagnostic_requires_debt_details_when_user_has_debts(clients):
 
     assert response.status_code == 422
     assert "debt_types" in response.json()["detail"]
+
+
+def test_diagnostic_summary_uses_saved_answers_and_profile_is_editable(clients):
+    first, second = clients
+    register(first, "summary@example.com")
+
+    not_ready = first.get("/api/v1/diagnostic/summary")
+    assert not_ready.status_code == 200
+    assert not_ready.json()["status"] == "not_ready"
+
+    submitted = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(
+                has_reserve="no",
+                tracks_expenses="none",
+                monthly_net_income="5000.00",
+                family_monthly_net_income="5000.00",
+                monthly_expenses="4200.00",
+            ),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+    assert submitted.status_code == 201, submitted.text
+
+    summary = first.get("/api/v1/diagnostic/summary")
+    assert summary.status_code == 200, summary.text
+    assert summary.json()["status"] == "completed"
+    assert summary.json()["metrics"]["monthly_margin"] == "800.00"
+    assert summary.json()["basis"] == "self_reported_diagnostic"
+    assert summary.json()["next_steps"]
+
+    updated = first.patch(
+        "/api/v1/auth/me",
+        json={"full_name": "Pessoa Atualizada", "timezone": "America/Sao_Paulo"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["full_name"] == "Pessoa Atualizada"
+    assert updated.json()["timezone"] == "America/Sao_Paulo"
+
+    register(second, "other-summary@example.com")
+    assert second.get("/api/v1/diagnostic/summary").json()["status"] == "not_ready"
+
+
+def test_diagnostic_clears_conditional_answers_and_validates_other_priority(clients):
+    first, _second = clients
+    register(first, "conditional-diagnostic@example.com")
+
+    invalid_other = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(financial_priority="other"),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+    assert invalid_other.status_code == 422
+    assert "financial_priority_other" in invalid_other.json()["detail"]
+
+    submitted = first.post(
+        "/api/v1/diagnostic/submit",
+        json={
+            "answers": diagnostic_answers(
+                total_debt_amount="900.00",
+                debt_types=["personal_loan"],
+                extra_income="no",
+                extra_income_details="Renda antiga",
+                has_debts="no",
+            ),
+            "consent_data_processing": True,
+            "consent_service_disclaimer": True,
+        },
+    )
+    assert submitted.status_code == 201, submitted.text
+    assert "total_debt_amount" not in submitted.json()["answers"]
+    assert "extra_income_details" not in submitted.json()["answers"]

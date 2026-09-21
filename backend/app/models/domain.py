@@ -63,18 +63,14 @@ class FinancialDiagnostic(Base):
     __tablename__ = "financial_diagnostics"
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_financial_diagnostics_user"),
-        CheckConstraint(
-            "status IN ('draft', 'completed')", name="ck_financial_diagnostics_status"
-        ),
+        CheckConstraint("status IN ('draft', 'completed')", name="ck_financial_diagnostics_status"),
         CheckConstraint(
             "current_section BETWEEN 1 AND 13", name="ck_financial_diagnostics_section"
         ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     status: Mapped[str] = mapped_column(String(20), default="draft")
     current_section: Mapped[int] = mapped_column(default=1)
     version: Mapped[int] = mapped_column(default=1)

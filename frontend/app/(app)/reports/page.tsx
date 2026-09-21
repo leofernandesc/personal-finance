@@ -113,7 +113,7 @@ export default function ReportsPage() {
                 <Badge tone="neutral">6 meses</Badge>
               </CardHeader>
               {evolution.some((item) => item.incomeValue || item.expenseValue) ? (
-                <div className="h-[340px] px-3 pb-6 pt-5 md:px-6" role="img" aria-label="Gráfico de receitas e despesas dos últimos seis meses">
+                <div className="h-[270px] px-2 pb-5 pt-4 sm:h-[300px] md:h-[340px] md:px-6" role="img" aria-label="Gráfico de receitas e despesas dos últimos seis meses">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={evolution} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                       <CartesianGrid vertical={false} stroke="#eadfdd" strokeDasharray="3 3" />
@@ -130,13 +130,13 @@ export default function ReportsPage() {
 
             <Card className="overflow-hidden">
               <CardHeader><div><p className="eyebrow">Distribuição</p><CardTitle className="mt-1">Despesas por categoria</CardTitle><CardDescription>Onde as saídas se concentraram no mês.</CardDescription></div><BarChart3 size={19} className="text-muted" /></CardHeader>
-              {categories.length ? <div className="grid grid-cols-[150px_1fr] items-center gap-2 px-5 pb-7 pt-2"><div className="h-[180px]" role="img" aria-label="Gráfico de despesas por categoria"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={categories} dataKey="value" innerRadius={50} outerRadius={72} paddingAngle={3} stroke="none">{categories.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip formatter={(value) => money(Number(value))} /></PieChart></ResponsiveContainer></div><div className="space-y-3">{categories.slice(0, 5).map((item) => <div key={item.name} className="flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span className="truncate text-xs text-muted">{item.name}</span></div><span className="text-xs font-semibold text-ink">{money(item.value)}</span></div>)}</div></div> : <EmptyState compact title="Nada para classificar" description="Ainda não há despesas categorizadas neste mês." />}
+              {categories.length ? <div className="grid grid-cols-1 items-center gap-4 px-5 pb-7 pt-2 md:grid-cols-[150px_1fr] md:gap-2"><div className="mx-auto h-[165px] w-full max-w-[190px] md:mx-0 md:h-[180px] md:max-w-none" role="img" aria-label="Gráfico de despesas por categoria"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={categories} dataKey="value" innerRadius={50} outerRadius={72} paddingAngle={3} stroke="none">{categories.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip formatter={(value) => money(Number(value))} /></PieChart></ResponsiveContainer></div><div className="w-full space-y-3">{categories.slice(0, 5).map((item) => <div key={item.name} className="flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span className="truncate text-xs text-muted">{item.name}</span></div><span className="text-xs font-semibold text-ink">{money(item.value)}</span></div>)}</div></div> : <EmptyState compact title="Nada para classificar" description="Ainda não há despesas categorizadas neste mês." />}
             </Card>
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">
             <Card className="overflow-hidden">
-              <CardHeader><div><p className="eyebrow">Posição atual</p><CardTitle className="mt-1">Saldo por conta</CardTitle><CardDescription>O saldo vem sempre do backend financeiro.</CardDescription></div><Landmark size={19} className="text-muted" /></CardHeader>
+              <CardHeader><div><p className="eyebrow">Posição atual</p><CardTitle className="mt-1">Saldo por conta</CardTitle><CardDescription>Veja quanto há em cada lugar.</CardDescription></div><Landmark size={19} className="text-muted" /></CardHeader>
               {data.accounts.length ? <div className="divide-y divide-line">{data.accounts.map((account) => <div key={account.id} className="flex items-center justify-between gap-4 px-5 py-4 md:px-6"><div><p className="text-sm font-semibold text-ink">{account.name}</p><p className="mt-1 text-xs text-muted">{accountTypeLabels[account.account_type] || account.account_type}</p></div><p className="text-sm font-semibold text-ink">{money(account.balance)}</p></div>)}</div> : <EmptyState compact title="Nenhuma conta ativa" description="Cadastre uma conta para acompanhar saldos." />}
             </Card>
 

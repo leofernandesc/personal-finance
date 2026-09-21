@@ -23,7 +23,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex items-start justify-between gap-4 px-5 pb-3 pt-5 md:px-6 md:pt-6", className)} {...props} />;
+  return <div className={cn("flex flex-col items-start gap-3 px-5 pb-3 pt-5 sm:flex-row sm:justify-between md:px-6 md:pt-6", className)} {...props} />;
 }
 
 export function CardTitle({ className, children }: { className?: string; children: ReactNode }) {

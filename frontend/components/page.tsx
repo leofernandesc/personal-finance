@@ -2,7 +2,7 @@ import { ArrowUpRight, Plus, RefreshCw, SearchX, WalletMinimal } from "lucide-re
 import { Button, Card, Spinner } from "@/components/ui";
 
 export function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: React.ReactNode }) {
-  return <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1 className="page-title mt-2">{title}</h1>{description && <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{description}</p>}</div>{action && <div className="shrink-0">{action}</div>}</div>;
+  return <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div className="min-w-0">{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1 className="page-title mt-2">{title}</h1>{description && <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{description}</p>}</div>{action && <div className="w-full md:w-auto md:shrink-0 [&>button]:w-full md:[&>button]:w-auto">{action}</div>}</div>;
 }
 
 export function LoadingState({ label = "Carregando seus dados" }: { label?: string }) {

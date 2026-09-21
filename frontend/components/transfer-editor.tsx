@@ -116,9 +116,9 @@ export function TransferEditor({
       </div>
 
       {error && <p role="alert" className="mt-4 rounded-xl border border-rust/20 bg-rust/5 px-3 py-2.5 text-sm text-rust">{error}</p>}
-      <div className="mt-6 flex justify-end gap-2">
-        <Button type="button" variant="quiet" onClick={onCancel}>Cancelar</Button>
-        <Button type="button" onClick={() => void submit()} disabled={saving || activeAccounts.length < 2}>
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={onCancel}>Cancelar</Button>
+        <Button type="button" className="w-full sm:w-auto" onClick={() => void submit()} disabled={saving || activeAccounts.length < 2}>
           {saving ? <Spinner /> : <Check size={16} />} {saving ? "Transferindo…" : "Realizar transferência"}
         </Button>
       </div>

@@ -138,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar onNavigate={() => setMobileOpen(false)} />
         <button className="absolute left-[258px] top-5 rounded-full bg-white p-2 text-muted shadow" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X size={16} /></button>
       </div>
-      <main className="lg:pl-[248px]">
+      <main className="min-w-0 overflow-x-hidden lg:pl-[248px]">
         <header className="sticky top-0 z-30 flex h-[70px] items-center justify-between border-b border-line/80 bg-paper/90 px-5 backdrop-blur md:px-8 lg:px-10">
           <div className="flex items-center gap-3">
             <button className="rounded-lg p-2 text-muted hover:bg-brand-pink-soft lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
@@ -155,7 +155,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-xs font-bold text-white lg:hidden">{initials(user.full_name)}</span>
           </div>
         </header>
-        <div className="mx-auto max-w-[1440px] px-5 py-8 md:px-8 lg:px-10 lg:py-10">{children}</div>
+        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-5 md:px-8 md:py-8 lg:px-10 lg:py-10">{children}</div>
       </main>
     </div>
   );

@@ -20,6 +20,7 @@ dist/
 build/
 .DS_Store
 database/postgres-data/
+backups/
 agent/.runtime/
 .hermes-runtime/
 .hermes/

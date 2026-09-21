@@ -79,6 +79,11 @@ no Docker Compose:
 - `hermes plugins doctor ./agent --ci` confirmou import, registro de 14 tools e
   um hook.
 
+O fluxo operacional também foi exercitado com `make db-backup` e
+`make db-backup-check`: o dump custom foi validado por checksum, restaurado em
+um banco PostgreSQL temporário e consultou `users` e `alembic_version` antes de
+ser removido. O banco de desenvolvimento não foi sobrescrito.
+
 ## Ciclo 3 — prontidão da integração local
 
 O verificador `make cycle3-check` foi adicionado para separar pré-requisitos

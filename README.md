@@ -136,6 +136,33 @@ docker compose down
 `docker compose down` preserva o volume nomeado; use `docker compose down -v`
 somente quando quiser apagar o banco local de demonstração.
 
+### Backup e restauração local
+
+O PostgreSQL é a fonte de verdade financeira. Crie um dump local com checksum
+SHA-256:
+
+```bash
+make db-backup
+```
+
+O arquivo fica em `backups/`, que não é versionado. Para testar a recuperação
+sem alterar o banco em uso, restaure o dump em uma base temporária:
+
+```bash
+make db-backup-check BACKUP=backups/personal_finance_YYYYMMDDTHHMMSSZ.dump
+```
+
+A restauração do banco do Compose é destrutiva e exige confirmação explícita:
+
+```bash
+make db-restore BACKUP=backups/personal_finance_YYYYMMDDTHHMMSSZ.dump
+make migrate
+```
+
+Os scripts não cifram o dump. Em qualquer ambiente compartilhado, armazene o
+arquivo em local protegido e defina retenção antes de usá-lo como backup
+operacional.
+
 ### Executar sem Docker
 
 Com um PostgreSQL local acessível:

@@ -68,8 +68,9 @@ Estado atual: preparação técnica implementada; round trip ainda pendente.
    autorizado.
 2. Definir expiração/retenção para sessões e logs do agente, além de rotina de
    limpeza.
-3. Preparar backup/restore do PostgreSQL e validar restauração, não apenas o
-   backup.
+3. Backup/restore local implementados com checksum, confirmação explícita e
+   validação em banco temporário. Ainda falta definir retenção e armazenamento
+   cifrado para produção.
 4. Definir configuração de produção com TLS, cookies seguros, hosts e origens
    explícitos.
 

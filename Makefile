@@ -1,7 +1,7 @@
 PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 
-.PHONY: help setup up down logs migrate seed backend-check agent-check frontend-check cycle3-check cycle3-ready check
+.PHONY: help setup up down logs migrate seed db-backup db-backup-check db-restore backend-check agent-check frontend-check cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -10,6 +10,9 @@ help:
 	@echo "logs            acompanha os logs dos serviços"
 	@echo "migrate         aplica as migrations no banco configurado"
 	@echo "seed            carrega os dados de demonstração"
+	@echo "db-backup       cria dump local não cifrado do PostgreSQL"
+	@echo "db-backup-check restaura um dump em banco temporário e verifica a estrutura"
+	@echo "db-restore      restaura dump com confirmação explícita (destrutivo)"
 	@echo "check           executa todas as verificações locais"
 	@echo "cycle3-check    verifica backend, Ollama, Hermes e pareamento sem alterar estado"
 	@echo "cycle3-ready    exige todos os pré-requisitos do round trip WhatsApp"
@@ -34,6 +37,17 @@ migrate:
 
 seed:
 	cd backend && PYTHONPATH=. .venv/bin/python -m app.seed_demo
+
+db-backup:
+	./scripts/backup_postgres.sh
+
+db-backup-check:
+	test -n "$(BACKUP)" || (echo "Uso: make db-backup-check BACKUP=backups/arquivo.dump"; exit 2)
+	./scripts/check_postgres_backup.sh "$(BACKUP)"
+
+db-restore:
+	test -n "$(BACKUP)" || (echo "Uso: make db-restore BACKUP=backups/arquivo.dump"; exit 2)
+	./scripts/restore_postgres.sh --confirm "$(BACKUP)"
 
 backend-check:
 	cd backend && .venv/bin/ruff check app tests

@@ -20,6 +20,19 @@ O MVP web está utilizável. O MVP conversacional só deve ser declarado aceito
 depois dos dois round trips reais pelo WhatsApp descritos em
 [`validation.md`](validation.md).
 
+### Regras de acesso revisadas
+
+O cadastro agora exige nome válido, senha de 8 a 128 caracteres e confirmação
+idêntica validada no navegador e na API. Login e cadastro permitem revelar ou
+ocultar a senha. A senha segue armazenada somente como hash Argon2.
+
+Antes de disponibilizar o cadastro fora do ambiente local, planejar a troca de
+senha autenticada, recuperação com token temporário de uso único, verificação
+de e-mail quando ela for usada para recuperar acesso e limitação de tentativas
+de login/cadastro. Não exibir um link de recuperação até existir um canal de
+entrega configurado e validado, mantendo o custo operacional do projeto em
+R$ 0.
+
 ## Próximos passos priorizados
 
 O Ciclo 1 foi concluído localmente em 20/09/2026. O Ollama foi executado em

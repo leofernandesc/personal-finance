@@ -9,6 +9,18 @@ async function register(page: Page) {
   await page.getByLabel("Como podemos chamar você?", { exact: true }).fill("Usuário E2E");
   await page.getByLabel("E-mail", { exact: true }).fill(uniqueEmail());
   await page.getByLabel("Senha", { exact: true }).fill("e2e-password-123");
+
+  await page.getByLabel("Confirme sua senha", { exact: true }).fill("senha-diferente-123");
+  await page.getByRole("button", { name: "Criar minha conta" }).click();
+  await expect(page.getByText("As senhas não coincidem.", { exact: true })).toBeVisible();
+
+  const password = page.getByLabel("Senha", { exact: true });
+  await page.getByRole("button", { name: "Mostrar a senha", exact: true }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Ocultar a senha", exact: true }).click();
+  await expect(password).toHaveAttribute("type", "password");
+
+  await page.getByLabel("Confirme sua senha", { exact: true }).fill("e2e-password-123");
   await page.getByRole("button", { name: "Criar minha conta" }).click();
   await expect(page).toHaveURL(/\/diagnostico/);
   await expect(page.getByRole("heading", { name: "Diagnóstico financeiro" }).first()).toBeVisible();

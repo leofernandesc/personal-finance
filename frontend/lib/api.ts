@@ -85,7 +85,7 @@ export const api = {
   me: () => request<User>("/auth/me"),
   updateProfile: (body: { full_name?: string; timezone?: string }) => request<User>("/auth/me", json("PATCH", body)),
   login: (body: { email: string; password: string }) => request<{ user: User }>("/auth/login", json("POST", body)),
-  register: (body: { email: string; password: string; full_name: string; timezone: string }) =>
+  register: (body: { email: string; password: string; password_confirmation: string; full_name: string; timezone: string }) =>
     request<{ user: User }>("/auth/register", json("POST", body)),
   logout: () => request<{ message: string }>("/auth/logout", json("POST")),
   diagnostic: () => request<Diagnostic>("/diagnostic"),

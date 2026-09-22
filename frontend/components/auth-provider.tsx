@@ -8,7 +8,7 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<User>;
-  signUp: (payload: { email: string; password: string; full_name: string; timezone: string }) => Promise<User>;
+  signUp: (payload: { email: string; password: string; password_confirmation: string; full_name: string; timezone: string }) => Promise<User>;
   updateProfile: (payload: { full_name?: string; timezone?: string }) => Promise<User>;
   signOut: () => Promise<void>;
 };

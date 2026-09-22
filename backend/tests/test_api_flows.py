@@ -40,11 +40,45 @@ def register(client: TestClient, email: str) -> None:
         json={
             "email": email,
             "password": "senha-segura",
+            "password_confirmation": "senha-segura",
             "full_name": "Pessoa de Teste",
             "timezone": "America/Manaus",
         },
     )
     assert response.status_code == 201, response.text
+
+
+def test_registration_requires_a_name_and_matching_password_confirmation(clients):
+    first, _second = clients
+    payload = {
+        "email": "new-user@example.com",
+        "password": "senha-segura",
+        "password_confirmation": "senha-diferente",
+        "full_name": "Pessoa de Teste",
+        "timezone": "America/Manaus",
+    }
+
+    mismatch = first.post("/api/v1/auth/register", json=payload)
+
+    assert mismatch.status_code == 422
+    assert any("As senhas não coincidem" in item["msg"] for item in mismatch.json()["detail"])
+
+    payload["password_confirmation"] = payload["password"]
+    payload["full_name"] = "   "
+    blank_name = first.post("/api/v1/auth/register", json=payload)
+
+    assert blank_name.status_code == 422
+
+    payload["full_name"] = "Pessoa de Teste"
+    created = first.post("/api/v1/auth/register", json=payload)
+    assert created.status_code == 201
+
+    duplicate = first.post(
+        "/api/v1/auth/register",
+        json={**payload, "email": "NEW-USER@example.com"},
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "E-mail já cadastrado"
 
 
 def test_readiness_requires_the_financial_schema(clients):

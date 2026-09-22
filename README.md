@@ -559,6 +559,8 @@ precisando passar por todos os checks.
   fallback sem `sudo` e validação local do Ollama em CPU.
 - [`docs/architecture/0019-hermes-profile-isolation.md`](docs/architecture/0019-hermes-profile-isolation.md):
   isolamento do perfil financeiro no Hermes e validação do provider local.
+- [`docs/architecture/0020-registration-rules.md`](docs/architecture/0020-registration-rules.md):
+  validação do nome, confirmação e visibilidade de senha no cadastro e login.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

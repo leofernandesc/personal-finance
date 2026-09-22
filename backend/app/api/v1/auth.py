@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -70,7 +71,16 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
         timezone=_validate_timezone(payload.timezone),
     )
     db.add(user)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        if db.scalar(select(User).where(User.email == email)):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="E-mail já cadastrado",
+            ) from exc
+        raise
     seed_categories(db, user)
     _start_session(db, user, response)
     return AuthResponse(user=UserResponse.model_validate(user))

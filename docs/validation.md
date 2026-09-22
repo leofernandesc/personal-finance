@@ -38,6 +38,21 @@ de usuário, idempotência, auditoria, diagnóstico, resumo determinístico, edi
 de perfil e fluxos HTTP. O plugin cobre o cliente HTTP, a recusa de contexto sem
 idempotência e o conjunto esperado de 14 tools.
 
+## Revisão das regras de cadastro — 22/09/2026
+
+- `backend/tests/test_api_flows.py`: 13 testes passaram, incluindo rejeição de
+  nome vazio e confirmação de senha divergente; o TestClient mostrou dois
+  avisos de depreciação das dependências Starlette/httpx.
+- TypeScript (`tsc --noEmit`), ESLint nos arquivos alterados e `git diff --check`
+  passaram.
+- O fluxo E2E existente foi atualizado para preencher a confirmação e exercitar
+  a divergência e o controle de visibilidade da senha, mas não foi executado
+  localmente para não gravar outra conta de teste no PostgreSQL compartilhado.
+- Cadastro/login não oferecem recuperação ou troca de senha ainda. A decisão e
+  os pré-requisitos para esses fluxos estão em
+  [`docs/architecture/0020-registration-rules.md`](architecture/0020-registration-rules.md)
+  e no roadmap.
+
 ## Execução real local — 21/09/2026
 
 Além da suíte automatizada, o ambiente local foi exercitado com PostgreSQL 16

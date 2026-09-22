@@ -261,15 +261,28 @@ def main() -> int:
         help="Base URL /v1 para o provider OpenAI-compatible.",
     )
     parser.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
+    parser.add_argument(
+        "--llm-timeout",
+        type=float,
+        default=float(
+            os.getenv("LLM_TIMEOUT_SECONDS", os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
+        ),
+        help="Tempo máximo da chamada ao modelo local, em segundos.",
+    )
     args = parser.parse_args()
     if args.provider == "openai-compatible":
         provider = OpenAICompatibleProvider(
             base_url=args.openai_url,
             model=args.model,
             api_key=args.api_key,
+            timeout_seconds=args.llm_timeout,
         )
     else:
-        provider = OllamaProvider(base_url=args.ollama_url, model=args.model)
+        provider = OllamaProvider(
+            base_url=args.ollama_url,
+            model=args.model,
+            timeout_seconds=args.llm_timeout,
+        )
     intent = interpret(args.text, provider)
     result = dispatch(
         intent,

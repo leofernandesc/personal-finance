@@ -115,6 +115,12 @@ ollama serve
 ollama pull qwen2.5:3b
 ```
 
+Em uma máquina sem `sudo` interativo, o binário pode ser instalado em um
+diretório do usuário e iniciado com `OLLAMA_LLM_LIBRARY=cpu`; isso mantém o
+runtime fora do domínio financeiro e evita depender de serviço privilegiado.
+O primeiro prompt estruturado em CPU pode levar mais de um minuto; o runner
+aceita `LLM_TIMEOUT_SECONDS` ou `--llm-timeout` e usa 180 segundos por padrão.
+
 No ambiente local validado, `qwen2.5:3b` foi usado para manter o consumo
 compatível com o smoke runner. Esse modelo tem janela de 32.768 tokens e não
 atende ao requisito de 64.000 tokens do runtime Hermes atual. Neste host,

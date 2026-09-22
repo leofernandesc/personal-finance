@@ -134,6 +134,17 @@ docker compose logs -f backend
 docker compose down
 ```
 
+Para aplicar migrations ou carregar o usuário demo a partir do host, use:
+
+```bash
+make migrate
+make seed
+```
+
+Esses alvos usam `127.0.0.1` por padrão. Se o PostgreSQL estiver em outro
+endereço, sobrescreva com `make seed LOCAL_DATABASE_URL=...`; o hostname
+`db` só é resolvido dentro da rede do Compose.
+
 `docker compose down` preserva o volume nomeado; use `docker compose down -v`
 somente quando quiser apagar o banco local de demonstração.
 
@@ -498,6 +509,11 @@ typecheck valida os contratos TypeScript. A revisão visual adicional deve ser
 feita no navegador em desktop e mobile, conferindo teclado, foco, estados
 vazios, loading, erro e feedback de salvamento.
 
+O workflow cancela uma execução anterior da mesma branch quando um novo push
+chega antes dela terminar. Isso evita filas e alertas duplicados durante uma
+sequência de correções, sem esconder falhas: a execução mais recente continua
+precisando passar por todos os checks.
+
 ## Decisões e documentação
 
 - [`docs/architecture/0001-foundation.md`](docs/architecture/0001-foundation.md):
@@ -524,6 +540,8 @@ vazios, loading, erro e feedback de salvamento.
   scheduler opcional e explícito para retenção operacional.
 - [`docs/architecture/0017-cycle3-readiness.md`](docs/architecture/0017-cycle3-readiness.md):
   verificação do modo efetivo do bridge antes do aceite do WhatsApp.
+- [`docs/architecture/0018-local-ollama-cpu.md`](docs/architecture/0018-local-ollama-cpu.md):
+  fallback sem `sudo` e validação local do Ollama em CPU.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

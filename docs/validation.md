@@ -157,6 +157,27 @@ parâmetros esperados sem tocar no banco. O strict check continua exigindo uma
 allowlist explícita; a sessão local usada na validação ainda não foi autorizada
 para receber mensagens.
 
+### Evidência atual — 22/09/2026
+
+Como o host não tinha `sudo` interativo, o runtime Ollama `0.34.2` foi instalado
+no diretório do usuário e iniciado com `OLLAMA_LLM_LIBRARY=cpu`. O modelo
+`llama3.2:3b` foi baixado e o `/api/show` confirmou contexto de `131072` tokens.
+O smoke real pela fronteira Ollama → FastAPI então produziu:
+
+- `create_transaction`, `expense`, `25`, `Almoço`, `Alimentação`, `Nubank` e
+  `relative_date=today`;
+- persistência com `source=whatsapp`, valor `25.00` e data `2026-09-22`;
+- repetição do mesmo `X-Agent-Message-Id` com o mesmo ID e `replayed=true`;
+- `get_category_summary` retornando `127.50` para Alimentação;
+- `get_month_summary` retornando `income=4500.00`, `expense=205.50` e
+  `savings=4294.50`, todos calculados pelo backend.
+
+O primeiro carregamento em CPU ultrapassou 60 segundos; por isso o runner agora
+aceita `LLM_TIMEOUT_SECONDS`/`--llm-timeout` e usa 180 segundos por padrão.
+Essa evidência valida o caminho local do modelo até o PostgreSQL, mas não é um
+round trip WhatsApp: o bridge continua em `self-chat` e a execução estrita deve
+permanecer bloqueada.
+
 O preflight também confere o modo real do processo Hermes quando o bridge está
 no host local. Nesta máquina, o endpoint respondeu `connected`, mas o processo
 está em `--mode self-chat`; portanto, mesmo com uma allowlist hipotética, o

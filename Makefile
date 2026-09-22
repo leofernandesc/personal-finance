@@ -74,8 +74,8 @@ backend-check:
 	cd backend && .venv/bin/pytest -q
 
 agent-check:
-	backend/.venv/bin/ruff check --config agent/pyproject.toml agent
-	backend/.venv/bin/ruff format --config agent/pyproject.toml --check agent
+	cd backend && .venv/bin/ruff check --config ../agent/pyproject.toml ../agent
+	cd backend && .venv/bin/ruff format --config ../agent/pyproject.toml --check ../agent
 	PYTHONPATH=. $(PYTHON) -m pytest -q agent/tests
 	$(PYTHON) -m compileall -q backend/app agent
 

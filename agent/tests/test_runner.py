@@ -1,5 +1,4 @@
 import pytest
-
 from agent.runner import _normalize_intent
 
 

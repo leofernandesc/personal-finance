@@ -21,6 +21,9 @@ situação mudar.
   para o dashboard sem concluir.
 - O formulário é dividido por etapas e salva um rascunho ao avançar ou ao
   escolher “Salvar e continuar depois”.
+- Etapas já alcançadas podem ser reabertas livremente pelo progresso no desktop
+  ou pelo seletor de etapas no celular; etapas ainda não visitadas continuam
+  sujeitas à validação sequencial.
 - A data de nascimento é digitada e exibida em `DD/MM/AAAA`; ao carregar
   respostas antigas e ao enviar/salvar, o frontend converte para ISO (`AAAA-MM-DD`),
   mantendo compatibilidade com a API e com os rascunhos já existentes.

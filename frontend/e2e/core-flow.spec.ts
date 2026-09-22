@@ -29,6 +29,19 @@ async function register(page: Page) {
   await page.getByRole("checkbox").nth(1).check();
   await page.getByRole("button", { name: "Próxima etapa" }).click();
   await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();
+
+  if (test.info().project.name === "mobile-firefox") {
+    const visitedSteps = page.getByLabel("Ir para uma etapa já visitada");
+    await visitedSteps.selectOption("1");
+    await expect(page.getByText(/Etapa 1 de 13/)).toBeVisible();
+    await visitedSteps.selectOption("2");
+  } else {
+    await page.getByRole("button", { name: "Consentimento e privacidade" }).click();
+    await expect(page.getByText(/Etapa 1 de 13/)).toBeVisible();
+    await page.getByRole("button", { name: "Identificação" }).click();
+  }
+  await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();
+
   await page.getByRole("button", { name: "Salvar e continuar depois" }).click();
   await page.reload();
   await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();

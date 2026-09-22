@@ -272,7 +272,13 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
   const hasDebts = watchedValues.has_debts;
   const visibleSections = React.useMemo(() => visibleDiagnosticSections(hasDebts), [hasDebts]);
   const initialSection = diagnostic.status === "completed" ? 1 : Math.min(Math.max(diagnostic.current_section, 1), 13);
-  const [section, setSection] = React.useState(initialSection === 8 && hasDebts !== "yes" ? 7 : initialSection);
+  const startingSection = initialSection === 8 && hasDebts !== "yes" ? 7 : initialSection;
+  const [section, setSection] = React.useState(startingSection);
+  const [visitedSections, setVisitedSections] = React.useState<number[]>(() => {
+    if (diagnostic.status === "completed") return visibleSections;
+    const startingIndex = visibleSections.indexOf(startingSection);
+    return visibleSections.slice(0, Math.max(startingIndex, 0) + 1);
+  });
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const currentIndex = visibleSections.indexOf(section);
@@ -280,6 +286,10 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
 
   React.useEffect(() => {
     if (!visibleSections.includes(section)) setSection(hasDebts === "no" && section === 8 ? 7 : visibleSections[0]);
+    setVisitedSections((visited) => {
+      const stillVisible = visited.filter((item) => visibleSections.includes(item));
+      return stillVisible.length === visited.length ? visited : stillVisible;
+    });
   }, [hasDebts, section, visibleSections]);
 
   const saveDraft = async (nextSection: number) => {
@@ -289,8 +299,10 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
       await api.saveDiagnosticDraft({ current_section: nextSection, answers: answersFromForm(form.getValues()) });
       window.dispatchEvent(new Event("diagnostic-changed"));
       setNotice("Progresso salvo. Você pode continuar quando quiser.");
+      return true;
     } catch (reason) {
       setError("root", { message: reason instanceof ApiError ? reason.message : "Não foi possível salvar seu progresso." });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -315,8 +327,11 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
   const next = async () => {
     if (!(await validateSection())) return;
     const nextSection = section === 7 && hasDebts === "no" ? 9 : visibleSections[currentVisibleIndex + 1];
-    await saveDraft(nextSection ?? section);
-    if (nextSection) setSection(nextSection);
+    const saved = await saveDraft(nextSection ?? section);
+    if (nextSection && saved) {
+      setVisitedSections((visited) => [...new Set([...visited, section, nextSection])]);
+      setSection(nextSection);
+    }
   };
 
   const previous = () => {
@@ -396,12 +411,24 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
   return <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,760px)] xl:items-start">
     <aside className="surface hidden p-4 xl:block xl:sticky xl:top-24">
       <p className="px-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">Seu progresso</p>
-      <div className="mt-4 space-y-1">{visibleSections.map((item, index) => <button key={item} type="button" onClick={() => index <= currentVisibleIndex && setSection(item)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${item === section ? "bg-brand-pink-soft font-semibold text-brand-brown-dark" : index < currentVisibleIndex ? "text-moss" : "text-muted"}`}><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[0.65rem] ${index < currentVisibleIndex ? "border-moss bg-mint text-moss" : item === section ? "border-brand-brown text-brand-brown" : "border-line"}`}>{index < currentVisibleIndex ? <Check size={12} /> : index + 1}</span><span>{sectionTitles[item - 1]}</span></button>)}</div>
+      <nav aria-label="Etapas do diagnóstico" className="mt-4 space-y-1">{visibleSections.map((item, index) => {
+        const visited = visitedSections.includes(item);
+        const current = item === section;
+        return <button key={item} type="button" disabled={!visited || busy} aria-current={current ? "step" : undefined} onClick={() => setSection(item)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${current ? "bg-brand-pink-soft font-semibold text-brand-brown-dark" : visited ? "text-moss hover:bg-paper" : "cursor-not-allowed text-muted"}`}><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[0.65rem] ${current ? "border-brand-brown text-brand-brown" : visited ? "border-moss bg-mint text-moss" : "border-line"}`}>{visited && !current ? <Check size={12} /> : index + 1}</span><span>{sectionTitles[item - 1]}</span></button>;
+      })}</nav>
     </aside>
     <Card className="overflow-hidden">
       <CardHeader className="border-b border-line bg-white"><div><CardTitle>Diagnóstico financeiro</CardTitle><CardDescription>Etapa {currentVisibleIndex + 1} de {visibleSections.length} · {Math.round(((currentVisibleIndex) / visibleSections.length) * 100)}% concluído</CardDescription></div><CircleHelp size={19} className="text-muted" /></CardHeader>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="p-5 md:p-8">{renderSection()}{rootError && <div role="alert" className="mt-6 rounded-xl border border-rust/20 bg-rust/5 px-4 py-3 text-sm leading-6 text-rust">{rootError}</div>}{notice && <div role="status" className="mt-6 rounded-xl border border-moss/20 bg-mint/35 px-4 py-3 text-sm leading-6 text-moss">{notice}</div>}</div>
+        <div className="p-5 md:p-8">
+          <div className="mb-6 xl:hidden">
+            <label htmlFor="diagnostic-visited-section" className="label">Ir para uma etapa já visitada</label>
+            <Select id="diagnostic-visited-section" value={String(section)} disabled={busy} onChange={(event) => setSection(Number(event.target.value))}>
+              {visibleSections.filter((item) => visitedSections.includes(item)).map((item) => <option key={item} value={item}>Etapa {visibleSections.indexOf(item) + 1} — {sectionTitles[item - 1]}</option>)}
+            </Select>
+          </div>
+          {renderSection()}{rootError && <div role="alert" className="mt-6 rounded-xl border border-rust/20 bg-rust/5 px-4 py-3 text-sm leading-6 text-rust">{rootError}</div>}{notice && <div role="status" className="mt-6 rounded-xl border border-moss/20 bg-mint/35 px-4 py-3 text-sm leading-6 text-moss">{notice}</div>}
+        </div>
         <div className="flex flex-col-reverse gap-3 border-t border-line bg-paper px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8"><Button type="button" variant="quiet" onClick={previous} disabled={currentVisibleIndex === 0 || busy}><ChevronLeft size={16} /> Voltar</Button><div className="flex flex-col gap-3 sm:flex-row"><Button type="button" variant="secondary" onClick={() => saveDraft(section)} disabled={busy}><Save size={15} /> Salvar e continuar depois</Button>{isLast ? <Button type="submit" disabled={busy || isSubmitting}>{busy || isSubmitting ? "Enviando…" : <>Enviar diagnóstico <Check size={16} /></>}</Button> : <Button type="button" onClick={next} disabled={busy}>{busy ? "Salvando…" : <>Próxima etapa <ChevronRight size={16} /></>}</Button>}</div></div>
       </form>
     </Card>

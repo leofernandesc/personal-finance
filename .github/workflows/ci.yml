@@ -91,6 +91,9 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies for e2e
+        working-directory: frontend
+        run: npm ci
       - name: Start application stack
         run: |
           cp .env.example .env
@@ -106,9 +109,6 @@ jobs:
           done
           docker compose -p personal-finance-e2e ps
           exit 1
-      - name: Install frontend dependencies for e2e
-        working-directory: frontend
-        run: npm ci
       - name: Install Playwright browser for e2e
         working-directory: frontend
         run: ./node_modules/.bin/playwright install firefox

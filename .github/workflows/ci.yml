@@ -106,11 +106,12 @@ jobs:
           done
           docker compose -p personal-finance-e2e ps
           exit 1
-      - name: Install browser test dependencies
+      - name: Install frontend dependencies for e2e
         working-directory: frontend
-        run: |
-          npm ci
-          ./node_modules/.bin/playwright install firefox
+        run: npm ci
+      - name: Install Playwright browser for e2e
+        working-directory: frontend
+        run: ./node_modules/.bin/playwright install firefox
       - name: Run browser flow tests
         working-directory: frontend
         run: npm run test:e2e

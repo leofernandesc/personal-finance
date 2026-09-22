@@ -2,7 +2,7 @@ PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 LOCAL_DATABASE_URL ?= postgresql+psycopg://finance:finance@127.0.0.1:5432/personal_finance
 
-.PHONY: help setup up down logs migrate seed maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check frontend-e2e cycle3-check cycle3-ready check
+.PHONY: help setup up down logs migrate seed hermes-local-smoke maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check frontend-e2e cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -21,6 +21,7 @@ help:
 	@echo "cycle3-check    verifica backend, Ollama, Hermes e pareamento sem alterar estado"
 	@echo "cycle3-ready    exige todos os pré-requisitos do round trip WhatsApp"
 	@echo "                 (migrations/seed usam LOCAL_DATABASE_URL no host)"
+	@echo "hermes-local-smoke executa consulta somente leitura pelo perfil Hermes local"
 
 setup:
 	test -x $(PYTHON) || python3.12 -m venv backend/.venv
@@ -42,6 +43,9 @@ migrate:
 
 seed:
 	cd backend && DATABASE_URL="$(LOCAL_DATABASE_URL)" PYTHONPATH=. .venv/bin/python -m app.seed_demo
+
+hermes-local-smoke:
+	./scripts/hermes_local_smoke.sh
 
 maintenance-check:
 	@if docker compose ps --services --filter status=running 2>/dev/null | grep -qx backend; then \

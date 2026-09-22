@@ -178,6 +178,17 @@ Essa evidência valida o caminho local do modelo até o PostgreSQL, mas não é 
 round trip WhatsApp: o bridge continua em `self-chat` e a execução estrita deve
 permanecer bloqueada.
 
+Na mesma data, o plugin foi instalado no perfil isolado
+`~/.hermes/profiles/personal-finance`, o perfil foi alinhado para
+`custom:ollama` com `llama3.2:3b`, e o comando `make hermes-local-smoke` foi
+executado com uma consulta de leitura. O Hermes chamou `get_balance` e retornou
+`R$ 6.464,50`, distribuídos em Dinheiro (`R$ 84,50`), Inter (`R$ 1.150,00`) e
+Nubank (`R$ 5.230,00`). A API registrou a mesma mensagem externa com
+`intent=get_balance`, `tool_name=get_balance`, `status=success` e uma única
+linha em `agent_tool_calls`. Portanto, esta evidência comprova Hermes → Ollama
+→ plugin → FastAPI → PostgreSQL para uma consulta, sem depender do gateway
+padrão ou de uma API paga.
+
 O preflight também confere o modo real do processo Hermes quando o bridge está
 no host local. Nesta máquina, o endpoint respondeu `connected`, mas o processo
 está em `--mode self-chat`; portanto, mesmo com uma allowlist hipotética, o

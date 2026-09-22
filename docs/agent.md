@@ -145,6 +145,19 @@ faz as chamadas OpenAI-compatible para Ollama e usa as tools registradas pelo
 plugin; o adapter nativo em `agent/llm/ollama.py` é usado pelo runner isolado e
 permite trocar o provider sem contaminar o domínio.
 
+Para validar o perfil financeiro sem tocar no gateway padrão, instale o plugin
+no perfil `personal-finance` e execute a consulta somente de leitura:
+
+```bash
+HERMES_HOME="$HOME/.hermes/profiles/personal-finance" \
+  hermes plugins install "file:///caminho/para/personal-finance#agent" --enable
+HERMES_SMOKE_SENDER=+5592999999999 make hermes-local-smoke
+```
+
+O comando usa o perfil isolado, o modelo local configurado e a mesma tool HTTP
+que o gateway usaria. Ele não inicia WhatsApp, não altera o gateway padrão e
+não deve ser usado com uma mensagem de mutação sem intenção explícita.
+
 Antes do pareamento, execute a checagem somente leitura:
 
 ```bash

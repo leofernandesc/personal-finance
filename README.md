@@ -343,6 +343,21 @@ O doctor deve confirmar o manifesto, o import e as 14 tools. Execute o Hermes a
 partir da raiz do repositório para que o plugin local seja descoberto. Para uma
 instalação permanente fora do monorepo, copie `agent/` para
 `~/.hermes/plugins/personal-finance/` e habilite `personal-finance` com o CLI.
+
+Para validar o perfil financeiro sem tocar no gateway padrão, instale o plugin
+no perfil isolado e execute uma consulta somente de leitura:
+
+```bash
+HERMES_HOME="$HOME/.hermes/profiles/personal-finance" \
+  hermes plugins install "file:///caminho/para/personal-finance#agent" --enable
+HERMES_SMOKE_SENDER=+5592999999999 make hermes-local-smoke
+```
+
+O script usa `llama3.2:3b`, injeta somente o contexto técnico necessário para a
+sessão e tem como mensagem padrão “Quanto dinheiro tenho atualmente?”. Para
+testar outra mensagem, defina `HERMES_SMOKE_TEXT`; mensagens de mutação alteram
+os dados reais do usuário informado. O script não inicia o gateway nem o
+WhatsApp e não substitui o round trip do canal.
 No Hermes, habilite o toolset `personal_finance` para a plataforma WhatsApp e
 configure a porta do bridge fora da porta do frontend:
 
@@ -542,6 +557,8 @@ precisando passar por todos os checks.
   verificação do modo efetivo do bridge antes do aceite do WhatsApp.
 - [`docs/architecture/0018-local-ollama-cpu.md`](docs/architecture/0018-local-ollama-cpu.md):
   fallback sem `sudo` e validação local do Ollama em CPU.
+- [`docs/architecture/0019-hermes-profile-isolation.md`](docs/architecture/0019-hermes-profile-isolation.md):
+  isolamento do perfil financeiro no Hermes e validação do provider local.
 - [`docs/agent.md`](docs/agent.md): configuração operacional do Hermes, Ollama e
   adapters de WhatsApp.
 - [`docs/roadmap.md`](docs/roadmap.md): aceite atual e próximos passos

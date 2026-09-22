@@ -53,8 +53,8 @@ jobs:
       - name: Test agent boundary
         run: |
           cd backend
-          ruff check ../agent
-          ruff format --check ../agent
+          ruff check --config ../agent/pyproject.toml ../agent
+          ruff format --config ../agent/pyproject.toml --check ../agent
           cd ..
           PYTHONPATH=. python -m pytest -q agent/tests
           python -m compileall -q backend/app agent
@@ -110,7 +110,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npx playwright install --with-deps firefox
+          npx playwright install firefox
       - name: Run browser flow tests
         working-directory: frontend
         run: npm run test:e2e

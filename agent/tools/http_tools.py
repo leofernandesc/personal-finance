@@ -109,7 +109,10 @@ TOOLS = [
                 "transaction_id": {"type": "string"},
                 "confirmation_token": {
                     "type": "string",
-                    "description": "Token retornado pela primeira tentativa; use somente após um sim explícito.",
+                    "description": (
+                        "Token retornado pela primeira tentativa; use somente após "
+                        "um sim explícito."
+                    ),
                 },
             },
             ["transaction_id"],

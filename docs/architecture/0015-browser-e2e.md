@@ -32,5 +32,8 @@ locais; no CI são iniciados antes do Playwright.
 - O teste local deixa registros de uma conta E2E no banco de desenvolvimento;
   por isso, um banco descartável é recomendado para execução repetida.
 - Firefox é baixado pelo Playwright e não faz parte da imagem de produção.
+- No CI, apenas o binário do Firefox é instalado pelo Playwright; as bibliotecas
+  do runner Ubuntu são reutilizadas. Isso evita que o instalador tente alterar
+  o sistema operacional durante o job e falhe antes de executar os testes.
 - A cobertura não substitui a auditoria manual de teclado, leitor de tela,
   contraste e comportamento de erros; essa etapa continua no roadmap.

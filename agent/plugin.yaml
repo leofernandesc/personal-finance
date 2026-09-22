@@ -19,3 +19,4 @@ provides_tools:
   - create_transfer
 provides_hooks:
   - post_tool_call
+  - transform_llm_output

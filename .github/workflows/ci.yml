@@ -110,7 +110,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npx playwright install firefox
+          ./node_modules/.bin/playwright install firefox
       - name: Run browser flow tests
         working-directory: frontend
         run: npm run test:e2e

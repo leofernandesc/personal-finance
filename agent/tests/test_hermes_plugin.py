@@ -1,6 +1,7 @@
 from agent.hermes_plugin import (
     _format_result,
     _remember_tool_result,
+    require_financial_tool,
     transform_llm_output,
 )
 
@@ -46,3 +47,48 @@ def test_delete_confirmation_never_exposes_backend_token():
         == "Encontrei o movimento de R$ 20,00 (Uber). Você confirma a exclusão?"
     )
     assert "secret-token" not in response
+
+
+def test_financial_request_requires_native_tool_call():
+    result = require_financial_tool(
+        {
+            "model": "llama3.2:3b",
+            "messages": [
+                {"role": "user", "content": "Quanto dinheiro tenho atualmente?"}
+            ],
+            "tools": [{"type": "function"}],
+        }
+    )
+
+    assert result == {
+        "request": {
+            "model": "llama3.2:3b",
+            "messages": [
+                {"role": "user", "content": "Quanto dinheiro tenho atualmente?"}
+            ],
+            "tools": [{"type": "function"}],
+            "tool_choice": "required",
+        },
+        "reason": "financial_tool_required",
+    }
+
+
+def test_financial_tool_requirement_does_not_repeat_after_tool_result():
+    request = {
+        "messages": [
+            {"role": "user", "content": "Quanto dinheiro tenho?"},
+            {"role": "tool", "content": '{"total":"10.00"}'},
+        ],
+        "tool_choice": "auto",
+    }
+
+    assert require_financial_tool(request) is None
+
+
+def test_nonfinancial_request_is_not_forced_into_finance_tool():
+    assert (
+        require_financial_tool(
+            {"messages": [{"role": "user", "content": "Olá, tudo bem?"}]}
+        )
+        is None
+    )

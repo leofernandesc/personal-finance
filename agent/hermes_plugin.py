@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -14,6 +15,36 @@ _MAX_TOOL_RESULTS = 128
 _RESULT_LOCK = Lock()
 _LAST_TOOL_RESULTS: OrderedDict[str, tuple[str, str]] = OrderedDict()
 
+_FINANCIAL_INTENT_MARKERS = (
+    "saldo",
+    "dinheiro",
+    "gastei",
+    "gasto",
+    "despesa",
+    "recebi",
+    "receita",
+    "transferi",
+    "transferencia",
+    "conta",
+    "categoria",
+    "orcamento",
+    "meta",
+    "divida",
+    "fatura",
+    "pagamento",
+    "compra",
+    "mercado",
+    "almoço",
+    "almoco",
+    "gasolina",
+    "uber",
+    "transporte",
+    "alimentacao",
+    "alimentação",
+    "quanto gastei",
+    "quanto tenho",
+)
+
 
 def _brl(value: Any) -> str:
     try:
@@ -22,6 +53,57 @@ def _brl(value: Any) -> str:
         return "R$ —"
     formatted = f"{amount:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
     return f"R$ {formatted}"
+
+
+def _normalize_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    return "".join(char for char in normalized if not unicodedata.combining(char))
+
+
+def _latest_user_text(messages: Any) -> str:
+    if not isinstance(messages, list):
+        return ""
+    for message in reversed(messages):
+        if not isinstance(message, dict) or message.get("role") != "user":
+            continue
+        content = message.get("content")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            return " ".join(
+                str(part.get("text", ""))
+                for part in content
+                if isinstance(part, dict) and part.get("type") == "text"
+            )
+    return ""
+
+
+def require_financial_tool(request: dict[str, Any], **kwargs) -> dict[str, Any] | None:
+    """Require a native tool call for explicit financial requests.
+
+    Some small local models emit a JSON-looking tool call as plain text when
+    the OpenAI-compatible request leaves ``tool_choice`` on ``auto``. This
+    middleware only changes the initial request for a financial utterance;
+    once a tool result is present, the model must be allowed to produce its
+    short final answer.
+    """
+    del kwargs
+    if not isinstance(request, dict):
+        return None
+    messages = request.get("messages") or request.get("input")
+    if not isinstance(messages, list) or any(
+        isinstance(message, dict) and message.get("role") == "tool"
+        for message in messages
+    ):
+        return None
+    if request.get("tool_choice") not in (None, "auto"):
+        return None
+    text = _normalize_text(_latest_user_text(messages))
+    if not text or not any(marker in text for marker in _FINANCIAL_INTENT_MARKERS):
+        return None
+    next_request = dict(request)
+    next_request["tool_choice"] = "required"
+    return {"request": next_request, "reason": "financial_tool_required"}
 
 
 def _remember_tool_result(**kwargs) -> None:
@@ -199,3 +281,4 @@ def register(ctx) -> None:
 
     ctx.register_hook("post_tool_call", record_tool_call)
     ctx.register_hook("transform_llm_output", transform_llm_output)
+    ctx.register_middleware("llm_request", require_financial_tool)

@@ -21,6 +21,9 @@ situação mudar.
   para o dashboard sem concluir.
 - O formulário é dividido por etapas e salva um rascunho ao avançar ou ao
   escolher “Salvar e continuar depois”.
+- A data de nascimento é digitada e exibida em `DD/MM/AAAA`; ao carregar
+  respostas antigas e ao enviar/salvar, o frontend converte para ISO (`AAAA-MM-DD`),
+  mantendo compatibilidade com a API e com os rascunhos já existentes.
 - Cada usuário possui uma única linha em `financial_diagnostics`, com respostas
   validadas pelo Pydantic em `JSONB`, versão do formulário e status.
 - Os dois consentimentos ficam em colunas próprias, com versão e data, para

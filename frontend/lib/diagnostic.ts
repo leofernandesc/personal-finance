@@ -11,11 +11,46 @@ const optionalInteger = z.string().max(4).optional().refine((value) => {
   if (!value) return true;
   return /^\d+$/.test(value);
 }, "Informe somente números inteiros.");
+export function birthDateToIso(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  const brazilianDate = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  const year = Number(brazilianDate?.[3] ?? isoDate?.[1]);
+  const month = Number(brazilianDate?.[2] ?? isoDate?.[2]);
+  const day = Number(brazilianDate?.[1] ?? isoDate?.[3]);
+
+  if (!brazilianDate && !isoDate) return null;
+  if (year < 1 || month < 1 || month > 12) return null;
+
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (day < 1 || day > daysInMonth[month - 1]) return null;
+
+  const iso = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return iso <= today ? iso : null;
+}
+
+export function formatBirthDateForInput(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+  return value;
+}
+
+export function maskBrazilianDateInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 const optionalDate = z.string().optional().refine((value) => {
   if (!value) return true;
-  const parsed = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(parsed.getTime()) && parsed <= new Date();
-}, "Informe uma data válida que não esteja no futuro.");
+  return birthDateToIso(value) !== null;
+}, "Informe uma data válida no formato DD/MM/AAAA, que não esteja no futuro.");
 const choices = () => z.array(z.string()).optional();
 
 const financialPriorityValues = [
@@ -461,6 +496,7 @@ export function valuesFromDiagnostic(answers: Record<string, unknown>): Partial<
   return Object.fromEntries(Object.entries(answers).map(([key, value]) => {
     if (Array.isArray(value)) return [key, value];
     if (typeof value === "number") return [key, String(value)];
+    if (key === "birth_date") return [key, formatBirthDateForInput(value)];
     return [key, value ?? ""];
   })) as Partial<DiagnosticFormValues>;
 }
@@ -520,7 +556,10 @@ export function answersFromForm(values: DiagnosticFormValues): Record<string, un
   return Object.fromEntries(
     Object.entries(normalized)
       .filter(([key]) => !key.startsWith("consent_"))
-      .map(([key, value]) => [key, value === "" ? null : value]),
+      .map(([key, value]) => [
+        key,
+        key === "birth_date" ? birthDateToIso(value) : value === "" ? null : value,
+      ]),
   );
 }
 

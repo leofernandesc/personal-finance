@@ -18,6 +18,7 @@ import {
   diagnosticSchema,
   exclusiveDiagnosticChoices,
   hasValue,
+  maskBrazilianDateInput,
   multiOptions,
   normalizeDiagnosticValues,
   options,
@@ -83,6 +84,35 @@ function TextField({
 
 function MoneyField(props: Omit<React.ComponentProps<typeof TextField>, "type">) {
   return <TextField {...props} type="text" placeholder="R$ 0,00" inputMode="decimal" />;
+}
+
+function BrazilianDateField({
+  control,
+  errors,
+}: {
+  control: ReturnType<typeof useForm<DiagnosticFormValues>>["control"];
+  errors: FieldErrors<DiagnosticFormValues>;
+}) {
+  const error = messageFor(errors, "birth_date");
+  return <Controller name="birth_date" control={control} render={({ field }) => <div>
+    <label htmlFor="diagnostic-birth-date" className="label">Data de nascimento<span className="ml-1 text-rust" aria-hidden="true">*</span></label>
+    <Input
+      id="diagnostic-birth-date"
+      type="text"
+      inputMode="numeric"
+      autoComplete="bday"
+      maxLength={10}
+      placeholder="DD/MM/AAAA"
+      value={typeof field.value === "string" ? field.value : ""}
+      onChange={(event) => field.onChange(maskBrazilianDateInput(event.target.value))}
+      onBlur={field.onBlur}
+      ref={field.ref}
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? "diagnostic-birth-date-help diagnostic-birth-date-error" : "diagnostic-birth-date-help"}
+    />
+    <p id="diagnostic-birth-date-help" className="mt-1.5 text-xs leading-5 text-muted">Use o formato dia/mês/ano.</p>
+    {error && <p id="diagnostic-birth-date-error" className="mt-1.5 text-xs text-rust">{error}</p>}
+  </div>} />;
 }
 
 function SelectField({
@@ -333,7 +363,7 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
           <div className="mt-5 flex items-start gap-3 rounded-xl bg-paper p-4 text-sm leading-6 text-muted"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-moss" /><p>Não informe senhas bancárias, senhas de cartões, tokens, códigos de autenticação ou qualquer credencial de acesso.</p></div>
         </>;
       case 2:
-        return <><SectionIntro title="Vamos conhecer você" description="Essas informações ajudam a organizar o diagnóstico sem misturar seus dados de acesso com as respostas financeiras." /><div className="grid gap-5 md:grid-cols-2"><TextField {...common} name="full_name" label="Nome completo" required /><TextField {...common} name="birth_date" label="Data de nascimento" required type="date" /><TextField {...common} name="contact_email" label="E-mail" required type="email" /><TextField {...common} name="phone" label="Telefone/WhatsApp" required /><TextField {...common} name="city_state" label="Cidade e estado" required /><TextField {...common} name="occupation" label="Profissão ou principal ocupação" required /><SelectField {...common} name="marital_status" label="Estado civil" items={options.marital_status} /><SelectField {...common} name="organization_type" label="Sua organização financeira será" items={options.organization_type} /><TextField {...common} name="financial_dependents" label="Quantas pessoas dependem da renda familiar?" required inputMode="numeric" help="Inclua filhos, familiares ou outras pessoas que dependam total ou parcialmente dessa renda." /></div></>;
+        return <><SectionIntro title="Vamos conhecer você" description="Essas informações ajudam a organizar o diagnóstico sem misturar seus dados de acesso com as respostas financeiras." /><div className="grid gap-5 md:grid-cols-2"><TextField {...common} name="full_name" label="Nome completo" required /><BrazilianDateField control={control} errors={errors} /><TextField {...common} name="contact_email" label="E-mail" required type="email" /><TextField {...common} name="phone" label="Telefone/WhatsApp" required /><TextField {...common} name="city_state" label="Cidade e estado" required /><TextField {...common} name="occupation" label="Profissão ou principal ocupação" required /><SelectField {...common} name="marital_status" label="Estado civil" items={options.marital_status} /><SelectField {...common} name="organization_type" label="Sua organização financeira será" items={options.organization_type} /><TextField {...common} name="financial_dependents" label="Quantas pessoas dependem da renda familiar?" required inputMode="numeric" help="Inclua filhos, familiares ou outras pessoas que dependam total ou parcialmente dessa renda." /></div></>;
       case 3:
         return <><SectionIntro title="Objetivos e dificuldades" description="Não existe resposta certa. O objetivo é entender o que mais pesa hoje e onde você quer chegar." /><div className="space-y-6"><CheckboxGroup {...common} name="main_difficulties" label="Qual é sua principal dificuldade financeira atualmente?" items={multiOptions.main_difficulties} required /><OtherField values={watchedValues.main_difficulties} name="main_difficulties" otherName="main_difficulties_other" {...common} /><SelectField {...common} name="financial_priority" label="Qual é sua prioridade financeira neste momento?" items={options.financial_priority} required /><OtherField values={watchedValues.financial_priority} name="financial_priority" otherName="financial_priority_other" {...common} /><TextAreaField {...common} name="expected_result" label="Descreva o resultado que você espera alcançar com a consultoria" required placeholder="O que faria você sentir que o processo valeu a pena?" /><SelectField {...common} name="improvement_timeline" label="Em quanto tempo você gostaria de perceber uma melhora significativa?" items={options.improvement_timeline} /><fieldset><legend className="label">Como você avalia sua situação financeira atual? <span className="ml-1 text-rust" aria-hidden="true">*</span></legend><div className="grid grid-cols-5 gap-2">{[1, 2, 3, 4, 5].map((value) => <label key={value} className={`cursor-pointer rounded-xl border px-2 py-3 text-center text-sm ${watchedValues.financial_organization_score === String(value) ? "border-brand-pink bg-brand-pink-soft font-semibold text-brand-brown-dark" : "border-line bg-white"}`}><input className="sr-only" type="radio" value={value} {...register("financial_organization_score")} /><span className="block text-lg">{value}</span><span className="mt-1 block text-[0.65rem] leading-4 text-muted">{value === 1 ? "Desorganizada" : value === 5 ? "Organizada" : ""}</span></label>)}</div>{messageFor(errors, "financial_organization_score") && <p className="mt-1.5 text-xs text-rust">{messageFor(errors, "financial_organization_score")}</p>}</fieldset><CheckboxGroup {...common} name="organization_barriers" label="O que mais dificulta sua organização financeira?" items={multiOptions.organization_barriers} required /><OtherField values={watchedValues.organization_barriers} name="organization_barriers" otherName="organization_barriers_other" {...common} /></div></>;
       case 4:

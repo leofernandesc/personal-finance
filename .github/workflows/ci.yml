@@ -141,29 +141,8 @@ jobs:
               ports = services[name]["ports"]
               assert ports and all(port.get("host_ip") == "192.168.1.20" for port in ports), name
           '
-      - name: Start application stack
-        run: |
-          docker compose -p personal-finance-e2e up -d --build db backend frontend
-      - name: Wait for API and frontend
-        run: |
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:8000/ready >/dev/null \
-              && curl --fail --silent http://127.0.0.1:3000/register >/dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker compose -p personal-finance-e2e ps
-          exit 1
       - name: Install Playwright browser for e2e
         working-directory: frontend
         run: ./node_modules/.bin/playwright install firefox
-      - name: Run browser flow tests
-        working-directory: frontend
-        run: npm run test:e2e
-      - name: Collect application logs on failure
-        if: failure()
-        run: docker compose -p personal-finance-e2e logs --no-color
-      - name: Stop application stack
-        if: always()
-        run: docker compose -p personal-finance-e2e down -v
+      - name: Run browser flows in an isolated temporary stack
+        run: make frontend-e2e

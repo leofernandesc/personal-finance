@@ -542,23 +542,23 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-Teste de navegador, com o backend e o PostgreSQL disponíveis (o frontend é
-iniciado automaticamente se ainda não estiver rodando):
+Teste de navegador em stack isolada (não exige a aplicação principal ligada):
 
 ```bash
-cd frontend
-npx playwright install firefox
-npm run test:e2e
+make setup
+cd frontend && npx playwright install firefox
+cd .. && make frontend-e2e
 ```
 
-O fluxo cria um usuário isolado por execução e percorre cadastro, duas contas,
-despesa, transferência, edição atômica da transferência, orçamento, meta e
-dashboard em duas viewports. Os dados de teste ficam no banco local; use um
-banco de desenvolvimento separado quando a execução não for descartável. O
-workflow do GitHub sobe uma stack temporária e instala o Firefox antes de
-executar o mesmo comando. O mesmo conjunto também verifica automaticamente
-login e cadastro com axe; isso não substitui a auditoria manual de teclado,
-foco e leitor de tela.
+O alvo executa o fluxo em Firefox desktop e mobile numa stack Docker temporária:
+volume PostgreSQL e credenciais de teste separados, configuração sem importar
+o `.env` pessoal, e portas loopback `13000` (web), `18000` (API) e `15432`
+(banco). A stack é removida ao final e não usa nem reinicia a aplicação local.
+Se uma dessas portas estiver ocupada, defina `E2E_WEB_PORT`, `E2E_API_PORT` e
+`E2E_DB_PORT` com valores livres e diferentes. O fluxo cobre cadastro,
+diagnóstico, duas contas, despesa, transferência, edição atômica, orçamento,
+meta e dashboard; também verifica login/cadastro, dashboard e histórico com
+axe. Isso não substitui a auditoria manual de teclado, foco e leitor de tela.
 
 Na raiz, `make check` reúne os checks do backend, agente e frontend. O workflow
 de CI repete essas verificações, aplica migrations em PostgreSQL 16 e usa

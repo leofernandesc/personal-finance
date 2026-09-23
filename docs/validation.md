@@ -390,6 +390,37 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
   a API continuou pronta e a memória disponível voltou a 3,4 GiB. O modelo está
   descarregado no momento desta validação.
 
+## E2E local isolado — 23/09/2026
+
+- O alvo `make frontend-e2e` agora gera um nome de projeto Compose único,
+  credenciais exclusivas, portas loopback `13000/18000/15432` e um volume
+  PostgreSQL temporário. O backend de teste recebe `BACKEND_ENV_FILE=/dev/null`;
+  assim, o `.env` pessoal não é carregado. A limpeza remove containers, rede,
+  volume e somente as duas tags de imagem criadas com o nome único daquele
+  projeto E2E.
+- O frontend E2E usa build/start de produção sem bind mount dos arquivos locais;
+  a tentativa anterior com Next.js dev ficou bloqueada na compilação dinâmica
+  de rota. Em modo de produção, a primeira repetição revelou que o fluxo completo
+  podia exceder 45 s enquanto desktop e mobile rodavam em paralelo; o timeout
+  do cenário de ponta a ponta foi ajustado para 90 s, sem mudar os limites dos
+  outros testes nem o modo da aplicação principal.
+- A execução final de `make frontend-e2e` passou: 10 cenários em 51,7 s,
+  cobrindo cadastro, diagnóstico, contas, receita/despesa/transferência, edição,
+  orçamento, meta, dashboard, paginação/retry e scans axe em Firefox desktop e
+  mobile.
+- As stacks temporárias foram removidas com containers, rede, volume e imagens
+  locais; a stack Compose principal continuou em execução e o teste não usou o
+  banco compartilhado. `docker compose config` confirmou os três binds loopback,
+  o ambiente `test` e a ausência de `env_file` no backend E2E.
+
+- No mesmo dia, `make check` passou com 46 testes backend, 30 testes de agente,
+  25 testes frontend, Ruff, typecheck e build de produção. Após o ajuste de
+  timeout do cenário E2E, `make frontend-check` repetiu os 25 testes de UI,
+  ESLint, TypeScript e build sem falhas. `make cycle3-check` confirmou API,
+  modelo `llama3.2:3b` com janela de 131.072 e Hermes Plugin Doctor; o único
+  warning continua sendo o bridge em `self-chat`, conforme a escolha do usuário.
+  Nenhuma nova inferência foi iniciada.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

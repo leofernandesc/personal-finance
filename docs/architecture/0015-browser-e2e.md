@@ -21,16 +21,24 @@ Ele não acessa o PostgreSQL diretamente nem injeta dados financeiros para
 validar a UI. Cada execução gera um e-mail de teste novo, e o ambiente de CI
 usa uma stack Compose temporária.
 
-O `webServer` reaproveita o frontend local quando ele já está em execução e o
-inicia quando necessário. O backend e o PostgreSQL continuam sendo pré-requisitos
-locais; no CI são iniciados antes do Playwright.
+O alvo `make frontend-e2e` inicia uma stack Compose temporária em um namespace
+único, com credenciais de teste, portas próprias e um volume PostgreSQL isolado.
+Por padrão, frontend, API e banco usam `13000`, `18000` e `15432`, publicados
+somente em loopback. O frontend E2E executa um build otimizado de produção, sem
+HMR ou compilação de rotas durante os cenários. O arquivo `.env` do desenvolvedor
+não é carregado pelo backend E2E. A stack é removida ao terminar, inclusive
+após falhas normais do teste. As portas podem ser trocadas com `E2E_WEB_PORT`,
+`E2E_API_PORT` e `E2E_DB_PORT`.
 
 ## Consequências
 
 - O fluxo essencial de web é verificado em desktop e mobile antes de uma
   alteração ser considerada pronta.
-- O teste local deixa registros de uma conta E2E no banco de desenvolvimento;
-  por isso, um banco descartável é recomendado para execução repetida.
+- Contas e movimentos E2E ficam apenas no volume descartável do projeto de teste;
+  containers, rede, volume e imagens locais são removidos no encerramento,
+  restritos ao namespace único criado pelo próprio comando.
+- A execução exige Docker, dependências instaladas no frontend e o binário
+  Firefox do Playwright (`cd frontend && npx playwright install firefox`).
 - Firefox é baixado pelo Playwright e não faz parte da imagem de produção.
 - No CI, apenas o binário do Firefox é instalado pelo Playwright; as bibliotecas
   do runner Ubuntu são reutilizadas. Isso evita que o instalador tente alterar

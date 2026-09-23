@@ -1,0 +1,12 @@
+services:
+  frontend-e2e:
+    build:
+      context: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:18000/api/v1}
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${FRONTEND_HOST_PORT:-13000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: sh -c "npm run build && npm run start -- --hostname 0.0.0.0"

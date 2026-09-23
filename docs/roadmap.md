@@ -104,9 +104,10 @@ do round trip real de WhatsApp que depende de autorização explícita.
 ### P1 — qualidade do produto
 
 1. Testes E2E de navegador para cadastro, lançamento, transferência, edição de
-   transferência, orçamento, meta e dashboard foram adicionados e passaram em
-   Firefox desktop e mobile; o workflow de CI também os executa em uma stack
-   temporária.
+   transferência, orçamento, meta e dashboard passam em Firefox desktop e
+   mobile. `make frontend-e2e` e o CI usam stack temporária em modo de produção,
+   com banco/volume isolados, portas loopback próprias e sem importar o `.env`
+   pessoal; validação local atual: 10 cenários aprovados.
 2. O smoke Hermes é somente leitura por construção:
    seleciona apenas `personal_finance` e `PERSONAL_FINANCE_READ_ONLY` recusa
    chamadas não-GET antes da API, sem afetar o perfil normal do gateway.

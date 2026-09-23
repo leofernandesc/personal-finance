@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance}
       POSTGRES_DB: ${POSTGRES_DB:-personal_finance}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,11 +19,21 @@ services:
     build:
       context: ./backend
     env_file:
-      - .env
+      - ${BACKEND_ENV_FILE:-.env}
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finance}:${POSTGRES_PASSWORD:-finance}@db:5432/${POSTGRES_DB:-personal_finance}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-pf_session}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+      AGENT_LOG_RETENTION_DAYS: ${AGENT_LOG_RETENTION_DAYS:-180}
+      AGENT_SHARED_SECRET: ${AGENT_SHARED_SECRET:-change-me-in-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend,testserver}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-America/Manaus}
     ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:8000:8000"
+      - "${APP_BIND_HOST:-127.0.0.1}:${BACKEND_HOST_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
       - ./database:/database
@@ -46,7 +56,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
     ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:3000:3000"
+      - "${APP_BIND_HOST:-127.0.0.1}:${FRONTEND_HOST_PORT:-3000}:3000"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules

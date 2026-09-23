@@ -70,6 +70,7 @@ function transactionFixture(id: number, description: string, amount: string) {
 }
 
 test("completa o fluxo financeiro essencial no desktop e no mobile", async ({ page }) => {
+  test.setTimeout(90_000);
   await register(page);
 
   await page.goto("/accounts");

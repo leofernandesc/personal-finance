@@ -19,7 +19,7 @@ help:
 	@echo "db-backup       cria dump local não cifrado do PostgreSQL"
 	@echo "db-backup-check restaura um dump em banco temporário e verifica a estrutura"
 	@echo "db-restore      restaura dump com confirmação explícita (destrutivo)"
-	@echo "frontend-e2e     executa o fluxo Playwright em Firefox desktop/mobile"
+	@echo "frontend-e2e     roda E2E desktop/mobile em stack e banco descartáveis"
 	@echo "check           executa todas as verificações locais"
 	@echo "cycle3-check    verifica backend, Ollama, Hermes e pareamento sem alterar estado"
 	@echo "cycle3-ready    exige todos os pré-requisitos do round trip WhatsApp"
@@ -109,6 +109,6 @@ frontend-check:
 	cd frontend && npm run build
 
 frontend-e2e:
-	cd frontend && npm run test:e2e
+	./scripts/frontend_e2e.sh
 
 check: backend-check agent-check frontend-check

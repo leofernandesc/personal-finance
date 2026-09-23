@@ -51,6 +51,24 @@ async function register(page: Page) {
   await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();
 }
 
+function transactionFixture(id: number, description: string, amount: string) {
+  return {
+    id: `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`,
+    account_id: "00000000-0000-4000-8000-000000000100",
+    category_id: "00000000-0000-4000-8000-000000000200",
+    transfer_id: null,
+    transfer_leg: null,
+    type: "expense",
+    description,
+    amount,
+    transaction_date: "2026-09-22",
+    source: "web",
+    created_at: "2026-09-22T12:00:00Z",
+    account_name: "Conta E2E",
+    category_name: "Alimentação",
+  };
+}
+
 test("completa o fluxo financeiro essencial no desktop e no mobile", async ({ page }) => {
   await register(page);
 
@@ -119,4 +137,59 @@ test("completa o fluxo financeiro essencial no desktop e no mobile", async ({ pa
     }));
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
   }
+});
+
+test("preserva a primeira página e permite repetir a próxima após uma falha", async ({ page }) => {
+  await register(page);
+  const firstPage = [
+    transactionFixture(1, "Página 1 — almoço", "12.00"),
+    transactionFixture(2, "Página 1 — mercado", "28.00"),
+  ];
+  const secondPage = [
+    transactionFixture(3, "Página 2 — café", "8.00"),
+    transactionFixture(4, "Página 2 — ônibus", "5.00"),
+  ];
+  let secondPageAttempts = 0;
+  await page.route("**/api/v1/transactions*", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const url = new URL(route.request().url());
+    const headers = {
+      "access-control-allow-origin": "http://localhost:3000",
+      "access-control-allow-credentials": "true",
+      "access-control-expose-headers": "X-Next-Cursor",
+    };
+    if (!url.searchParams.has("cursor")) {
+      await route.fulfill({
+        json: firstPage,
+        headers: { ...headers, "x-next-cursor": "cursor-page-two" },
+      });
+      return;
+    }
+    secondPageAttempts += 1;
+    if (secondPageAttempts === 1) {
+      await route.fulfill({
+        status: 503,
+        json: { detail: "Falha de paginação simulada." },
+        headers,
+      });
+      return;
+    }
+    await route.fulfill({ json: secondPage, headers });
+  });
+
+  await page.goto("/transactions");
+  await expect(page.getByText("Página 1 — almoço", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Carregar mais movimentos" })).toBeVisible();
+  await page.getByRole("button", { name: "Carregar mais movimentos" }).click();
+  await expect(page.getByRole("alert")).toContainText("Falha de paginação simulada.");
+  await expect(page.getByText("Página 1 — almoço", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Tentar carregar novamente" }).click();
+  await expect(page.getByText("Página 2 — café", { exact: true })).toBeVisible();
+  await expect(page.getByText("Página 2 — ônibus", { exact: true })).toBeVisible();
+  await expect(page.getByText(/4 movimentos exibidos/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Carregar mais movimentos" })).toHaveCount(0);
+  await expect(page.getByText("Página 1 — almoço", { exact: true })).toHaveCount(1);
 });

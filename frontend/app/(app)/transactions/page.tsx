@@ -65,6 +65,7 @@ export default function TransactionsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"transaction" | "transfer" | null>(
     searchParams.get("new") === "1" ? "transaction" : null,
   );
@@ -74,6 +75,7 @@ export default function TransactionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setLoadMoreError(null);
     setNextCursor(null);
     try {
       const [transactionPage, accountItems, categoryItems, transferItems] = await Promise.all([
@@ -106,7 +108,7 @@ export default function TransactionsPage() {
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    setError(null);
+    setLoadMoreError(null);
     try {
       const page = await api.transactions({
         search: filters.search || undefined,
@@ -122,7 +124,7 @@ export default function TransactionsPage() {
       setTransactions((current) => [...current, ...page.data]);
       setNextCursor(page.nextCursor);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível carregar mais movimentos.");
+      setLoadMoreError(reason instanceof Error ? reason.message : "Não foi possível carregar mais movimentos.");
     } finally {
       setLoadingMore(false);
     }
@@ -269,9 +271,11 @@ export default function TransactionsPage() {
         </Card>
       )}
       {nextCursor && !loading && !error && (
-        <div className="mt-5 flex justify-center">
+        <div className="mt-5 flex flex-col items-center gap-2">
+          {loadMoreError && <p role="alert" className="text-center text-sm text-rust">{loadMoreError}</p>}
           <Button variant="secondary" onClick={() => void loadMore()} disabled={loadingMore}>
-            {loadingMore ? <Spinner /> : null} {loadingMore ? "Carregando…" : "Carregar mais movimentos"}
+            {loadingMore ? <Spinner /> : null}
+            {loadingMore ? "Carregando…" : loadMoreError ? "Tentar carregar novamente" : "Carregar mais movimentos"}
           </Button>
         </div>
       )}

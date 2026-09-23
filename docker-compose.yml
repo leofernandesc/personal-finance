@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance}
       POSTGRES_DB: ${POSTGRES_DB:-personal_finance}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finance}:${POSTGRES_PASSWORD:-finance}@db:5432/${POSTGRES_DB:-personal_finance}
     ports:
-      - "8000:8000"
+      - "${APP_BIND_HOST:-127.0.0.1}:8000:8000"
     volumes:
       - ./backend:/app
       - ./database:/database
@@ -46,7 +46,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
     ports:
-      - "3000:3000"
+      - "${APP_BIND_HOST:-127.0.0.1}:3000:3000"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules

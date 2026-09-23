@@ -117,9 +117,32 @@ jobs:
       - name: Install frontend dependencies for e2e
         working-directory: frontend
         run: npm ci
-      - name: Start application stack
+      - name: Verify development ports default to loopback
         run: |
           cp .env.example .env
+          docker compose config --format json | python3 -c '
+          import json
+          import sys
+
+          services = json.load(sys.stdin)["services"]
+          expected = {"db", "backend", "frontend"}
+          assert expected.issubset(services)
+          for name in expected:
+              ports = services[name]["ports"]
+              assert ports and all(port.get("host_ip") == "127.0.0.1" for port in ports), name
+          '
+          APP_BIND_HOST=192.168.1.20 docker compose config --format json | python3 -c '
+          import json
+          import sys
+
+          services = json.load(sys.stdin)["services"]
+          assert all(port.get("host_ip") == "127.0.0.1" for port in services["db"]["ports"])
+          for name in ("backend", "frontend"):
+              ports = services[name]["ports"]
+              assert ports and all(port.get("host_ip") == "192.168.1.20" for port in ports), name
+          '
+      - name: Start application stack
+        run: |
           docker compose -p personal-finance-e2e up -d --build db backend frontend
       - name: Wait for API and frontend
         run: |

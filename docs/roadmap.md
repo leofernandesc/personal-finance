@@ -38,9 +38,9 @@ R$ 0.
 O Ciclo 1 e o Ciclo 2A estão concluídos no código. Em 22/09/2026, o runtime
 opcional do Ollama foi endurecido para bind exclusivo em `127.0.0.1`, com rede
 Docker isolada e volume persistente; o modelo `llama3.2:3b` e o plugin Hermes
-passam no preflight local. O Ciclo 3 permanece aberto: o bridge conectado está
-em `self-chat`, ainda não houve autorização de um número para a allowlist e não
-foi validado um round trip real pelo WhatsApp.
+passam no preflight local. O Ciclo 3 permanece aberto: por escolha confirmada
+do usuário, o bridge deve continuar em `self-chat`, sem número na allowlist e
+sem round trip real pelo WhatsApp nesta etapa.
 
 ### Ciclo 2A — diagnóstico e onboarding
 
@@ -62,7 +62,8 @@ mobile, incluindo rascunho, dívidas, edição e resumo.
 Estado atual (22/09/2026): API, modelo local, plugin e tool calls já foram
 exercitados em fluxos locais; runtime Ollama está limitado ao loopback. O
 preflight estrito falha corretamente porque o bridge efetivo ainda está em
-`self-chat`. Nenhuma mensagem real do WhatsApp foi processada nesta validação.
+`self-chat`. O usuário optou por manter esse modo; nenhuma mensagem real do
+WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
 
 1. Manter Ollama local pelo Compose opcional com porta publicada somente em
    `127.0.0.1:11434`; a verificação correspondente agora roda no CI. O gateway
@@ -89,6 +90,10 @@ preflight estrito falha corretamente porque o bridge efetivo ainda está em
    cifrado para produção.
 4. Definir configuração de produção com TLS, cookies seguros, hosts e origens
    explícitos.
+5. A stack local agora publica PostgreSQL, API e frontend em loopback por
+   padrão; testes temporários em celular usam somente o IP LAN específico da
+   aplicação e mantêm o banco inacessível pela rede
+   ([ADR 0021](architecture/0021-compose-loopback-bindings.md)).
 
 ### P1 — qualidade do produto
 

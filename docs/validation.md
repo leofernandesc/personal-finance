@@ -232,8 +232,21 @@ aceite deve continuar recusando o round trip até o gateway ser iniciado em modo
   inferência levou vários segundos e elevou o uso de swap; não iniciar outras
   inferências nem baixar modelos sem verificar espaço em disco e memória.
 - Nenhum round trip pelo WhatsApp foi realizado nesta etapa. A sessão continua
-  em `self-chat`; ativá-la em `bot` exige número de teste em E.164 na allowlist
-  e autorização explícita, pois mensagens recebidas podem acionar tools.
+em `self-chat`; ativá-la em `bot` exige número de teste em E.164 na allowlist
+e autorização explícita, pois mensagens recebidas podem acionar tools.
+O usuário confirmou que prefere manter `self-chat`; a validação real pelo canal
+fica deliberadamente suspensa, sem alterar a sessão nem a allowlist.
+
+#### Bind seguro da stack local — 22/09/2026
+
+Uma inspeção da stack ativa encontrou PostgreSQL, API e frontend publicados em
+`0.0.0.0`. O Compose agora mantém as três portas em `127.0.0.1` por padrão; a
+API e o frontend aceitam um IP LAN específico via `APP_BIND_HOST` para testes
+temporários em dispositivo físico, enquanto o PostgreSQL permanece loopback.
+O CI valida os binds efetivos do Compose com `.env.example`. Após a recriação
+dos serviços, `docker compose ps` confirmou os três binds locais, `/ready` da
+API e a página de cadastro responderam com sucesso. Os passos para teste móvel
+em rede confiável e retorno à configuração local estão no README e no ADR 0021.
 
 Portanto, o Ciclo 3 ainda não é aceito como round trip. O aceite depende da
 allowlist, da inicialização do gateway Hermes e da execução dos cenários M–R

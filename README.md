@@ -127,6 +127,30 @@ disponível em `http://localhost:8000`. O frontend fica em
 `http://localhost:3000`. A documentação OpenAPI fica em
 `http://localhost:8000/docs`.
 
+Por padrão, as portas do PostgreSQL, da API e do frontend ficam acessíveis
+somente no próprio computador (`127.0.0.1`). Para abrir a aplicação
+temporariamente em um celular conectado à mesma rede Wi-Fi, use o IP local
+específico do computador (exemplo `192.168.1.20`) em `.env`:
+
+```dotenv
+APP_BIND_HOST=192.168.1.20
+ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.20,backend,testserver
+CORS_ORIGINS=http://localhost:3000,http://192.168.1.20:3000
+NEXT_PUBLIC_API_URL=http://192.168.1.20:8000/api/v1
+```
+
+Recrie API e frontend:
+
+```bash
+docker compose up -d --force-recreate backend frontend
+```
+
+Abra `http://192.168.1.20:3000` no celular. O PostgreSQL continua preso ao
+loopback. Esse acesso usa HTTP sem TLS: faça isso somente em uma rede confiável,
+nunca em Wi-Fi público. Depois do teste, restaure `APP_BIND_HOST=127.0.0.1`,
+`NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1`, `CORS_ORIGINS` e
+`ALLOWED_HOSTS` para os valores locais, e recrie API e frontend novamente.
+
 Para acompanhar ou parar os serviços:
 
 ```bash

@@ -241,7 +241,9 @@ senha:  demo1234
 
 O seed cria Nubank, Inter, Dinheiro, categorias, transações do mês,
 orçamentos e a meta de reserva de emergência. Ele é idempotente por e-mail e
-não duplica o usuário demo.
+não duplica o usuário demo. Como a senha é pública, o comando recusa execução
+fora de `development` ou `test`; nunca disponibilize essas credenciais em uma
+instalação compartilhada.
 
 ### Manutenção operacional
 

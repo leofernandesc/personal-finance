@@ -14,10 +14,19 @@ from app.services.finance import create_account, create_transaction, month_start
 from app.services.seed import seed_categories
 
 DEMO_EMAIL = "demo@personal-finance.dev"
+DEMO_SEED_ENVIRONMENTS = {"development", "test"}
+
+
+def _ensure_demo_seed_is_allowed(environment: str) -> None:
+    if environment not in DEMO_SEED_ENVIRONMENTS:
+        raise RuntimeError(
+            "O seed de demonstração só pode ser executado nos ambientes development ou test."
+        )
 
 
 def run() -> None:
     settings = get_settings()
+    _ensure_demo_seed_is_allowed(settings.environment)
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == DEMO_EMAIL))
         if user:

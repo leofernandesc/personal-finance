@@ -350,6 +350,17 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - Isso não substitui a revisão manual de navegação por teclado, leitor de tela
   e ordem de foco, que continua pendente.
 
+## Proteção do seed de demonstração — 22/09/2026
+
+- `app.seed_demo` agora permite execução somente em `development` e `test`;
+  em `staging` e `production`, falha antes de abrir uma sessão de banco.
+- Quatro testes dedicados cobrem os dois ambientes compartilhados, os ambientes
+  locais e a idempotência do seed. O fluxo permitido foi exercitado em SQLite
+  em memória; nenhuma conta foi criada no PostgreSQL da aplicação.
+- `make check` passou: 44 testes backend, 27 testes do agente, 25 testes
+  frontend, lint, formatação, typecheck e build de produção. Permanecem dois
+  avisos de depreciação vindos da combinação Starlette/httpx da suíte de testes.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

@@ -77,20 +77,23 @@ WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
 
 ### P1 — segurança operacional
 
-1. Desafio de posse implementado: código HMAC temporário, limite de tentativas,
+1. O seed com credenciais públicas de demonstração agora recusa execução em
+   `staging` e `production`; teste automatizado confirma que o bloqueio ocorre
+   antes de abrir uma sessão de banco.
+2. Desafio de posse implementado: código HMAC temporário, limite de tentativas,
    expiração, bloqueio das tools financeiras enquanto pendente e revogação ao
    desvincular. Ainda falta executar esse fluxo no WhatsApp real com um número
    autorizado.
-2. Retenção definida e rotina de limpeza implementada em `app.maintenance`.
+3. Retenção definida e rotina de limpeza implementada em `app.maintenance`.
    Unidades opcionais `systemd --user` e o runbook foram adicionados; a
    ativação continua manual e depende da política de retenção, backup e
    restauração do ambiente compartilhado.
-3. Backup/restore local implementados com checksum, confirmação explícita e
+4. Backup/restore local implementados com checksum, confirmação explícita e
    validação em banco temporário. Ainda falta definir retenção e armazenamento
    cifrado para produção.
-4. Definir configuração de produção com TLS, cookies seguros, hosts e origens
+5. Definir configuração de produção com TLS, cookies seguros, hosts e origens
    explícitos.
-5. A stack local agora publica PostgreSQL, API e frontend em loopback por
+6. A stack local agora publica PostgreSQL, API e frontend em loopback por
    padrão; testes temporários em celular usam somente o IP LAN específico da
    aplicação e mantêm o banco inacessível pela rede
    ([ADR 0021](architecture/0021-compose-loopback-bindings.md)).

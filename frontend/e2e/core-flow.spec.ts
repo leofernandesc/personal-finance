@@ -34,10 +34,14 @@ async function register(page: Page) {
     const visitedSteps = page.getByLabel("Ir para uma etapa já visitada");
     await visitedSteps.selectOption("1");
     await expect(page.getByText(/Etapa 1 de 13/)).toBeVisible();
+    await expect(page.getByRole("checkbox").nth(0)).toBeChecked();
+    await expect(page.getByRole("checkbox").nth(1)).toBeChecked();
     await visitedSteps.selectOption("2");
   } else {
     await page.getByRole("button", { name: "Consentimento e privacidade" }).click();
     await expect(page.getByText(/Etapa 1 de 13/)).toBeVisible();
+    await expect(page.getByRole("checkbox").nth(0)).toBeChecked();
+    await expect(page.getByRole("checkbox").nth(1)).toBeChecked();
     await page.getByRole("button", { name: "Identificação" }).click();
   }
   await expect(page.getByText(/Etapa 2 de 13/)).toBeVisible();

@@ -31,6 +31,8 @@ situação mudar.
   validadas pelo Pydantic em `JSONB`, versão do formulário e status.
 - Os dois consentimentos ficam em colunas próprias, com versão e data, para
   preservar uma trilha clara do aceite.
+- Salvar um rascunho não registra consentimento; as escolhas permanecem no
+  formulário durante a sessão e só são persistidas junto com o envio concluído.
 - A seção de detalhamento das dívidas só é exibida quando o usuário informa que
   possui dívidas. Ao responder “Não”, os detalhes condicionais são removidos.
 - As respostas não criam contas, transações, orçamentos ou metas

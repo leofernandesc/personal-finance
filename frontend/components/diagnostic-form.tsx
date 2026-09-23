@@ -345,10 +345,15 @@ export function DiagnosticForm({ user, diagnostic }: DiagnosticFormProps) {
     clearErrors("root");
     try {
       const normalizedValues = normalizeDiagnosticValues(values) as DiagnosticFormValues;
+      if (!normalizedValues.consent_data_processing || !normalizedValues.consent_service_disclaimer) {
+        setVisitedSections((visited) => visited.includes(1) ? visited : [...visited, 1]);
+        setSection(1);
+        setError("root", { message: "Marque os dois consentimentos antes de enviar o diagnóstico." });
+        return;
+      }
       const missing = requiredFieldsForSubmission(normalizedValues).filter((field) => !hasValue(normalizedValues[field]));
       if (missing.length) {
         setError("root", { message: "Preencha os campos obrigatórios antes de enviar o diagnóstico." });
-        setBusy(false);
         return;
       }
       await api.submitDiagnostic({

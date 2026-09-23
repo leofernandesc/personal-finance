@@ -157,7 +157,7 @@ test("preserva a primeira página e permite repetir a próxima após uma falha",
     }
     const url = new URL(route.request().url());
     const headers = {
-      "access-control-allow-origin": "http://localhost:3000",
+      "access-control-allow-origin": new URL(page.url()).origin,
       "access-control-allow-credentials": "true",
       "access-control-expose-headers": "X-Next-Cursor",
     };
@@ -184,9 +184,11 @@ test("preserva a primeira página e permite repetir a próxima após uma falha",
   await expect(page.getByText("Página 1 — almoço", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Carregar mais movimentos" })).toBeVisible();
   await page.getByRole("button", { name: "Carregar mais movimentos" }).click();
-  await expect(page.getByRole("alert")).toContainText("Falha de paginação simulada.");
+  await expect(page.getByText("Falha de paginação simulada.", { exact: true })).toBeVisible();
   await expect(page.getByText("Página 1 — almoço", { exact: true })).toBeVisible();
+  await expect(page.getByText("Página 1 — mercado", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Tentar carregar novamente" }).click();
+  await expect(page.getByText("Página 1 — mercado", { exact: true })).toHaveCount(1);
   await expect(page.getByText("Página 2 — café", { exact: true })).toBeVisible();
   await expect(page.getByText("Página 2 — ônibus", { exact: true })).toBeVisible();
   await expect(page.getByText(/4 movimentos exibidos/)).toBeVisible();

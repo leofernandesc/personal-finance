@@ -319,6 +319,22 @@ parear o WhatsApp:
 Esse resultado comprova o Ciclo 1, mas não comprova entrega por WhatsApp real.
 O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 
+## Paginação do histórico — 22/09/2026
+
+- `make frontend-check` passou com 25 testes Vitest, ESLint, TypeScript e build
+  de produção.
+- O novo E2E de paginação simula uma primeira página com cursor, uma falha 503
+  transitória e o retry bem-sucedido. Ele confere que os movimentos da primeira
+  página permanecem visíveis durante o erro, que a nova página é anexada uma
+  única vez e que o botão desaparece no fim.
+- O cenário passou em Firefox desktop e mobile contra uma stack Compose e um
+  volume PostgreSQL descartáveis, em portas diferentes da aplicação local. A
+  stack temporária foi removida após validar seus nomes; a aplicação principal
+  permaneceu saudável e seu banco compartilhado não foi usado pelo E2E.
+- A reprodução encontrou que o seletor amplo `getByRole("alert")` também
+  selecionava o anunciador vazio de navegação do Next.js. O teste foi
+  restringido ao texto exato do alerta e repetido com sucesso nos dois projetos.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

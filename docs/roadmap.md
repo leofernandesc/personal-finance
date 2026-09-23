@@ -105,8 +105,9 @@ WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
    mobile. Ainda falta a auditoria manual de teclado, foco, leitor de tela e
    contraste, incluindo as telas autenticadas.
 3. Paginação por cursor implementada no histórico da API e no botão “Carregar
-   mais” do frontend; o fluxo principal de histórico continua coberto por
-   E2E, enquanto falta uma cobertura dedicada de múltiplas páginas.
+   mais” do frontend. O E2E dedicado agora cobre duas páginas, falha transitória,
+   retry, preservação da primeira página e ausência de duplicatas em Firefox
+   desktop e mobile.
 4. Fluxo explícito para editar uma transferência inteira implementado na API,
    no formulário web e coberto pelo E2E, mantendo as duas pernas atômicas.
 

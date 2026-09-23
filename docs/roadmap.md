@@ -104,14 +104,17 @@ WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
    transferência, orçamento, meta e dashboard foram adicionados e passaram em
    Firefox desktop e mobile; o workflow de CI também os executa em uma stack
    temporária.
-2. Scan automatizado WCAG 2 A/AA com axe cobre login, cadastro, dashboard e
+2. O smoke Hermes é somente leitura por construção:
+   `PERSONAL_FINANCE_READ_ONLY` recusa chamadas não-GET antes da API, sem afetar
+   o perfil normal do gateway.
+3. Scan automatizado WCAG 2 A/AA com axe cobre login, cadastro, dashboard e
    transações em desktop e mobile; o teste mobile abre a navegação lateral.
    Ainda falta a auditoria manual de teclado, foco e leitor de tela.
-3. Paginação por cursor implementada no histórico da API e no botão “Carregar
+4. Paginação por cursor implementada no histórico da API e no botão “Carregar
    mais” do frontend. O E2E dedicado agora cobre duas páginas, falha transitória,
    retry, preservação da primeira página e ausência de duplicatas em Firefox
    desktop e mobile.
-4. Fluxo explícito para editar uma transferência inteira implementado na API,
+5. Fluxo explícito para editar uma transferência inteira implementado na API,
    no formulário web e coberto pelo E2E, mantendo as duas pernas atômicas.
 
 ### P2 — evolução controlada

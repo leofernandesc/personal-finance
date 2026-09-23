@@ -361,6 +361,22 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
   frontend, lint, formatação, typecheck e build de produção. Permanecem dois
   avisos de depreciação vindos da combinação Starlette/httpx da suíte de testes.
 
+## Smoke Hermes somente leitura — 23/09/2026
+
+- O runner local agora ativa `PERSONAL_FINANCE_READ_ONLY=1`. O plugin mantém as
+  14 ferramentas do manifesto, mas recusa tools `POST`, `PATCH` e `DELETE`
+  antes de criar um cliente ou chamar a API; consultas `GET` continuam
+  disponíveis. O gateway normal não recebe essa variável.
+- `make agent-check` passou com 30 testes, lint, formatação e compilação; o
+  Hermes Plugin Doctor passou sem avisos e confirmou 14 tools e 2 hooks. A
+  sintaxe do script shell também foi validada.
+- O runner de consulta não foi repetido nesta validação para evitar imprimir o
+  saldo real da conta vinculada no log de execução; o teste automatizado prova
+  que uma chamada de escrita não chega ao backend.
+- O perfil instalado neste host está na versão `0.2.0`, anterior à versão de
+  código `0.2.1`. O script agora interrompe o smoke antes de iniciar o LLM ou
+  chamar a API e fornece o comando para atualizar o plugin nesse perfil.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

@@ -392,10 +392,12 @@ HERMES_SMOKE_SENDER=+5592999999999 make hermes-local-smoke
 ```
 
 O script usa `llama3.2:3b`, injeta somente o contexto técnico necessário para a
-sessão e tem como mensagem padrão “Quanto dinheiro tenho atualmente?”. Para
-testar outra mensagem, defina `HERMES_SMOKE_TEXT`; mensagens de mutação alteram
-os dados reais do usuário informado. O script não inicia o gateway nem o
-WhatsApp e não substitui o round trip do canal.
+sessão e tem como mensagem padrão “Quanto dinheiro tenho atualmente?”. Ele
+define `PERSONAL_FINANCE_READ_ONLY=1`. O plugin mantém o catálogo do manifesto,
+mas recusa chamadas de escrita localmente, antes de chegar à API. Assim, nem
+um `HERMES_SMOKE_TEXT` personalizado pode criar, editar ou excluir dados
+financeiros pelo plugin. O script não inicia o gateway nem o WhatsApp e não
+substitui o round trip do canal.
 No Hermes, habilite o toolset `personal_finance` para a plataforma WhatsApp e
 configure a porta do bridge fora da porta do frontend:
 

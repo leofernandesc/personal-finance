@@ -171,8 +171,11 @@ HERMES_SMOKE_SENDER=+5592999999999 make hermes-local-smoke
 ```
 
 O comando usa o perfil isolado, o modelo local configurado e a mesma tool HTTP
-que o gateway usaria. Ele não inicia WhatsApp, não altera o gateway padrão e
-não deve ser usado com uma mensagem de mutação sem intenção explícita.
+que o gateway usaria. Ele não inicia WhatsApp nem altera o gateway padrão.
+Durante esse comando, `PERSONAL_FINANCE_READ_ONLY=1` mantém o catálogo do
+manifesto, mas recusa localmente chamadas não-GET antes de acessar a API,
+inclusive em mensagens personalizadas. A configuração não é aplicada ao
+gateway normal.
 
 Antes do pareamento, execute a checagem somente leitura:
 

@@ -1,9 +1,31 @@
+from types import SimpleNamespace
+
+import agent.hermes_plugin as hermes_plugin
 from agent.hermes_plugin import (
     _format_result,
     _remember_tool_result,
     require_financial_tool,
     transform_llm_output,
 )
+
+
+def test_read_only_environment_is_passed_to_tool_registration(monkeypatch):
+    registered_modes = []
+    monkeypatch.setenv("PERSONAL_FINANCE_READ_ONLY", "true")
+    monkeypatch.setattr(
+        hermes_plugin,
+        "register_tools",
+        lambda _ctx, *, read_only: registered_modes.append(read_only),
+    )
+
+    context = SimpleNamespace(
+        register_system_prompt_section=lambda *args, **kwargs: None,
+        register_hook=lambda *args, **kwargs: None,
+        register_middleware=lambda *args, **kwargs: None,
+    )
+    hermes_plugin.register(context)
+
+    assert registered_modes == [True]
 
 
 def test_balance_response_is_rendered_from_backend_values():

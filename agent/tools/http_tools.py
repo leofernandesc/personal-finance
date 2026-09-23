@@ -244,10 +244,12 @@ TOOLS = [
 ]
 
 
-def register_tools(ctx) -> None:
+def register_tools(ctx, *, read_only: bool = False) -> None:
     for tool in TOOLS:
 
         def handler(params: dict, *, _tool=tool, **kwargs) -> str:
+            if read_only and _tool.method != "GET":
+                return "Execução somente de leitura: operação financeira bloqueada."
             if _tool.method == "GET":
                 if _tool.name == "get_transactions":
                     return BackendFinanceClient().call(

@@ -19,6 +19,20 @@ if [[ ! -d "${profile_home}/plugins/personal-finance" ]]; then
   exit 1
 fi
 
+source_plugin_version=$(sed -nE 's/^version: "([^"]+)"$/\1/p' "${repo_root}/agent/plugin.yaml")
+profile_manifest="${profile_home}/plugins/personal-finance/plugin.yaml"
+profile_plugin_version=""
+if [[ -f "$profile_manifest" ]]; then
+  profile_plugin_version=$(sed -nE 's/^version: "([^"]+)"$/\1/p' "$profile_manifest")
+fi
+if [[ -z "$source_plugin_version" || "$source_plugin_version" != "$profile_plugin_version" ]]; then
+  printf 'plugin do perfil desatualizado (instalado: %s; código: %s)\n' \
+    "${profile_plugin_version:-desconhecido}" "${source_plugin_version:-desconhecido}" >&2
+  printf 'atualize-o com: HERMES_HOME=%q hermes plugins install %q --enable\n' \
+    "$profile_home" "file://${repo_root}#agent" >&2
+  exit 1
+fi
+
 if [[ -z "${AGENT_SHARED_SECRET:-}" ]]; then
   env_file=${PERSONAL_FINANCE_ENV_FILE:-"${repo_root}/.env"}
   if [[ -f "$env_file" ]]; then
@@ -39,6 +53,7 @@ export HERMES_PROFILE=personal-finance
 export HERMES_SESSION_PLATFORM=whatsapp
 export HERMES_SESSION_USER_ID="$smoke_sender"
 export HERMES_SESSION_MESSAGE_ID="$smoke_message_id"
+export PERSONAL_FINANCE_READ_ONLY=1
 export PERSONAL_FINANCE_API_URL="${PERSONAL_FINANCE_API_URL:-http://127.0.0.1:8000/api/v1/integrations/agent}"
 export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 

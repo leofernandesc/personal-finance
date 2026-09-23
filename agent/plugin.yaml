@@ -1,5 +1,5 @@
 name: personal-finance
-version: "0.2.0"
+version: "0.2.1"
 description: "Tools do Hermes para consultar e operar o domínio financeiro via FastAPI."
 author: "Personal Finance"
 provides_tools:

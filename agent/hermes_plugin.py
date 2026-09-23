@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import unicodedata
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
@@ -255,7 +256,13 @@ def transform_llm_output(
 
 
 def register(ctx) -> None:
-    register_tools(ctx)
+    read_only = os.getenv("PERSONAL_FINANCE_READ_ONLY", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    register_tools(ctx, read_only=read_only)
     prompt = PROMPT_PATH.read_text(encoding="utf-8")
     ctx.register_system_prompt_section(
         "personal-finance.rules", prompt, position="after_memory", max_chars=4000

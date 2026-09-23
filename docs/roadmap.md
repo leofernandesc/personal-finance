@@ -112,8 +112,10 @@ do round trip real de WhatsApp que depende de autorização explícita.
    seleciona apenas `personal_finance` e `PERSONAL_FINANCE_READ_ONLY` recusa
    chamadas não-GET antes da API, sem afetar o perfil normal do gateway.
 3. Scan automatizado WCAG 2 A/AA com axe cobre login, cadastro, dashboard e
-   transações em desktop e mobile; o teste mobile abre a navegação lateral.
-   Ainda falta a auditoria manual de teclado, foco e leitor de tela.
+   transações em desktop e mobile. O menu mobile também tem teste automatizado
+   de teclado para foco inicial, ciclo com Tab/Shift+Tab, Escape e restauração
+   do foco; permanece pendente a auditoria manual com leitor de tela e nos
+   fluxos completos de teclado.
 4. Paginação por cursor implementada no histórico da API e no botão “Carregar
    mais” do frontend. O E2E dedicado agora cobre duas páginas, falha transitória,
    retry, preservação da primeira página e ausência de duplicatas em Firefox

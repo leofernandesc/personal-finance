@@ -350,6 +350,25 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - Isso não substitui a revisão manual de navegação por teclado, leitor de tela
   e ordem de foco, que continua pendente.
 
+## Navegação mobile por teclado — 23/09/2026
+
+- A auditoria do menu lateral encontrou que, quando fechado, seus links
+  continuavam alcançáveis pelo teclado; quando aberto, não havia fechamento por
+  Escape, contenção do foco ou retorno ao acionador.
+- O painel agora expõe semântica de diálogo modal e estado `aria-expanded` /
+  `aria-controls`; o conteúdo da página fica inerte enquanto o menu está aberto.
+  O foco entra no menu, percorre seus controles em ciclo com Tab/Shift+Tab,
+  fecha com Escape e retorna ao botão “Abrir menu”. O estado fechado usa display
+  explícito, impedindo que CSS de layout sobreponha a ocultação.
+- A primeira rodada E2E reproduziu uma interação bloqueada: a classe `flex`
+  sobrepunha o atributo HTML `hidden`. A correção passou na rodada seguinte.
+  `make frontend-check` passou com 25 testes Vitest, ESLint sem avisos,
+  TypeScript e build; `make frontend-e2e` passou 10/10 cenários em Firefox
+  desktop e mobile, incluindo axe e os testes de foco.
+- A stack E2E, seu banco/volume, rede e imagens temporários foram limpos; a API
+  principal permaneceu saudável. Segue pendente uma auditoria manual com leitor
+  de tela e dos demais fluxos completos de teclado.
+
 ## Proteção do seed de demonstração — 22/09/2026
 
 - `app.seed_demo` agora permite execução somente em `development` e `test`;

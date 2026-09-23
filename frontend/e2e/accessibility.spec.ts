@@ -29,10 +29,27 @@ test("mantém dashboard e histórico acessíveis após autenticação", async ({
       await expect(page.getByRole("heading", { name: "Transações", exact: true })).toBeVisible();
     }
     if (test.info().project.name === "mobile-firefox") {
-      await page.getByRole("button", { name: "Abrir menu" }).click();
-      await expect(page.getByRole("navigation", { name: "Navegação principal" })).toBeVisible();
+      const menuButton = page.getByRole("button", { name: "Abrir menu" });
+      await menuButton.click();
+      const dialog = page.getByRole("dialog", { name: "Menu de navegação" });
+      await expect(dialog).toBeVisible();
+      const menuLinks = dialog.getByRole("link");
+      const closeButton = dialog.getByRole("button", { name: "Fechar menu" });
+      await expect(menuLinks.first()).toBeFocused();
+      await page.keyboard.press("Shift+Tab");
+      await expect(closeButton).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(menuLinks.first()).toBeFocused();
     }
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     expect(results.violations, `violações encontradas em ${route}`).toEqual([]);
+    if (test.info().project.name === "mobile-firefox") {
+      const menuButton = page.getByRole("button", { name: "Abrir menu" });
+      const dialog = page.getByRole("dialog", { name: "Menu de navegação" });
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
+      await expect(menuButton).toBeFocused();
+      expect(await page.evaluate(() => document.querySelector("#mobile-navigation-dialog")?.contains(document.activeElement))).toBe(false);
+    }
   }
 });

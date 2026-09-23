@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
   ChevronDown,
@@ -121,6 +121,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const [whatsappIdentity, setWhatsAppIdentity] = useState<WhatsAppIdentity | null>(null);
   const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null);
 
@@ -154,6 +156,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!loading && !user) router.replace("/login");
   }, [loading, router, user]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const menu = mobileMenuRef.current;
+    const menuTrigger = mobileMenuTriggerRef.current;
+    if (!menu) return;
+
+    const getFocusableElements = () => Array.from(
+      menu.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.getClientRects().length > 0);
+
+    getFocusableElements()[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusableElements = getFocusableElements();
+      const first = focusableElements[0];
+      const last = focusableElements.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        menu.focus();
+        return;
+      }
+
+      if (event.shiftKey && (document.activeElement === first || !menu.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !menu.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      menuTrigger?.focus();
+    };
+  }, [mobileOpen]);
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-paper"><div className="h-8 w-8 animate-spin rounded-full border-2 border-navy border-t-transparent" /></div>;
   }
@@ -165,14 +215,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-paper">
       <div className="fixed inset-y-0 left-0 z-40 hidden lg:flex"><Sidebar /></div>
       {mobileOpen && <div className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-[2px] lg:hidden" onClick={() => setMobileOpen(false)} aria-hidden="true" />}
-      <div className={`fixed inset-y-0 left-0 z-50 flex transition-transform lg:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div
+        ref={mobileMenuRef}
+        id="mobile-navigation-dialog"
+        role="dialog"
+        aria-label="Menu de navegação"
+        aria-modal={mobileOpen}
+        tabIndex={-1}
+        className={`fixed inset-y-0 left-0 z-50 lg:hidden ${mobileOpen ? "flex" : "hidden"}`}
+      >
         <Sidebar onNavigate={() => setMobileOpen(false)} />
         <button className="absolute left-[258px] top-5 rounded-full bg-white p-2 text-muted shadow" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X size={16} /></button>
       </div>
-      <main className="min-w-0 overflow-x-hidden lg:pl-[248px]">
+      <main inert={mobileOpen} className="min-w-0 overflow-x-hidden lg:pl-[248px]">
         <header className="sticky top-0 z-30 flex h-[70px] items-center justify-between border-b border-line/80 bg-paper/90 px-5 backdrop-blur md:px-8 lg:px-10">
           <div className="flex items-center gap-3">
-            <button className="rounded-lg p-2 text-muted hover:bg-brand-pink-soft lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
+            <button ref={mobileMenuTriggerRef} className="rounded-lg p-2 text-muted hover:bg-brand-pink-soft lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu" aria-expanded={mobileOpen} aria-controls="mobile-navigation-dialog"><Menu size={20} /></button>
             <Link href="/dashboard" className="lg:hidden" aria-label="Ir para o dashboard"><BrandLogo size="mobile" priority /></Link>
           </div>
           <div className="hidden text-sm text-muted lg:block">Organize com clareza. Decida com calma.</div>

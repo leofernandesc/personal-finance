@@ -43,5 +43,7 @@ após falhas normais do teste. As portas podem ser trocadas com `E2E_WEB_PORT`,
 - No CI, apenas o binário do Firefox é instalado pelo Playwright; as bibliotecas
   do runner Ubuntu são reutilizadas. Isso evita que o instalador tente alterar
   o sistema operacional durante o job e falhe antes de executar os testes.
-- A cobertura não substitui a auditoria manual de teclado, leitor de tela,
-  contraste e comportamento de erros; essa etapa continua no roadmap.
+- Axe verifica violações WCAG 2 A/AA e o menu mobile tem cobertura automatizada
+  de teclado para foco inicial, contenção de Tab/Shift+Tab, fechamento por
+  Escape e retorno ao acionador. Isso não substitui a auditoria manual dos
+  demais fluxos com teclado e leitor de tela, que continua no roadmap.

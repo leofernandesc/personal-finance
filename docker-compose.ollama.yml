@@ -1,0 +1,26 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: personal-finance-ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    ports:
+      - target: 11434
+        published: "11434"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ollama-isolated
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
+    external: true
+    name: personal-finance-ollama
+
+networks:
+  ollama-isolated:
+    name: personal-finance-ollama-network
+    driver: bridge

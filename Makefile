@@ -2,7 +2,7 @@ PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 LOCAL_DATABASE_URL ?= postgresql+psycopg://finance:finance@127.0.0.1:5432/personal_finance
 
-.PHONY: help setup up down logs migrate seed hermes-local-smoke maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check frontend-e2e cycle3-check cycle3-ready check
+.PHONY: help setup up down logs migrate seed ollama-up ollama-down ollama-model hermes-local-smoke maintenance-check maintenance-cleanup db-backup db-backup-check db-restore backend-check agent-check frontend-check frontend-e2e cycle3-check cycle3-ready check
 
 help:
 	@echo "setup           instala dependências locais do backend e frontend"
@@ -11,6 +11,9 @@ help:
 	@echo "logs            acompanha os logs dos serviços"
 	@echo "migrate         aplica as migrations no banco configurado"
 	@echo "seed            carrega os dados de demonstração"
+	@echo "ollama-up       sobe Ollama opcional, acessível somente no host local"
+	@echo "ollama-down     encerra Ollama sem apagar os modelos"
+	@echo "ollama-model    baixa llama3.2:3b para Hermes (uso de disco/RAM)"
 	@echo "maintenance-check simula a limpeza operacional (Compose ativo ou host)"
 	@echo "maintenance-cleanup aplica a limpeza operacional explicitamente"
 	@echo "db-backup       cria dump local não cifrado do PostgreSQL"
@@ -43,6 +46,16 @@ migrate:
 
 seed:
 	cd backend && DATABASE_URL="$(LOCAL_DATABASE_URL)" PYTHONPATH=. .venv/bin/python -m app.seed_demo
+
+ollama-up:
+	@docker volume inspect personal-finance-ollama >/dev/null 2>&1 || docker volume create personal-finance-ollama >/dev/null
+	docker compose -p personal-finance-ollama -f docker-compose.ollama.yml up -d
+
+ollama-down:
+	docker compose -p personal-finance-ollama -f docker-compose.ollama.yml down
+
+ollama-model:
+	docker compose -p personal-finance-ollama -f docker-compose.ollama.yml exec ollama ollama pull llama3.2:3b
 
 hermes-local-smoke:
 	./scripts/hermes_local_smoke.sh

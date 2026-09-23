@@ -35,6 +35,25 @@ jobs:
       AGENT_SHARED_SECRET: ci-agent-secret
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Ollama is loopback-only and isolated
+        run: |
+          docker compose -p personal-finance-ollama -f docker-compose.ollama.yml config --format json \
+            | python3 -c '
+          import json
+          import sys
+
+          config = json.load(sys.stdin)
+          assert set(config["services"]) == {"ollama"}
+          service = config["services"]["ollama"]
+          assert any(
+              port.get("host_ip") == "127.0.0.1" and int(port["published"]) == 11434
+              for port in service["ports"]
+          )
+          assert set(service["networks"]) == {"ollama-isolated"}
+          assert config["networks"]["ollama-isolated"]["name"] == "personal-finance-ollama-network"
+          assert config["volumes"]["ollama-data"]["external"] is True
+          assert config["volumes"]["ollama-data"]["name"] == "personal-finance-ollama"
+          '
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

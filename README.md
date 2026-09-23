@@ -286,15 +286,27 @@ O plugin vive em `agent/`. Ele registra 14 tools no toolset
 - `X-Agent-Sender-Id` para resolver o telefone;
 - `X-Agent-Message-Id` para idempotência.
 
-Para validar somente o Ciclo 1 em uma máquina com poucos recursos, mantenha o
-web MVP em execução e suba o Ollama separado:
+Ollama fica opcional e isolado do Compose principal. Inicie o serviço local
+com a porta disponível somente em `127.0.0.1` e mantenha os modelos no volume
+persistente:
 
 ```bash
-docker run -d --name personal-finance-ollama \
-  -p 11434:11434 \
-  -v personal-finance-ollama:/root/.ollama \
-  ollama/ollama
-docker exec personal-finance-ollama ollama pull qwen2.5:3b
+make ollama-up
+make ollama-model
+```
+
+`make ollama-model` baixa `llama3.2:3b` para o Hermes e pode ocupar alguns GB em
+disco; a inferência também usa memória RAM. Não é necessário se o modelo já
+estiver no volume. Para encerrar o servidor sem remover os modelos:
+
+```bash
+make ollama-down
+```
+
+Para o smoke runner do Ciclo 1, o `qwen2.5:3b` pode ser baixado separadamente:
+
+```bash
+docker compose -p personal-finance-ollama -f docker-compose.ollama.yml exec ollama ollama pull qwen2.5:3b
 export OLLAMA_BASE_URL=http://127.0.0.1:11434
 export OLLAMA_MODEL=qwen2.5:3b
 ```

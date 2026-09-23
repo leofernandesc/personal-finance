@@ -110,6 +110,23 @@ configuração não liga o canal sozinha.
 
 ## Ollama
 
+No desenvolvimento deste repositório, prefira o Compose opcional: ele publica a
+API somente no loopback e mantém os modelos em volume persistente, sem integrar
+Ollama à stack financeira:
+
+```bash
+make ollama-up
+make cycle3-check
+```
+
+Se o modelo ainda não estiver no volume, `make ollama-model` baixa
+`llama3.2:3b` (alguns GB de disco). Encerre o serviço sem apagar os modelos com
+`make ollama-down`. O primeiro carregamento em CPU pode consumir bastante RAM e
+demorar mais de um minuto; descarregue o modelo quando não estiver usando se a
+máquina estiver sob pressão.
+
+Como alternativa fora do Compose, em uma instalação nativa:
+
 ```bash
 ollama serve
 ollama pull qwen2.5:3b
@@ -121,11 +138,10 @@ runtime fora do domínio financeiro e evita depender de serviço privilegiado.
 O primeiro prompt estruturado em CPU pode levar mais de um minuto; o runner
 aceita `LLM_TIMEOUT_SECONDS` ou `--llm-timeout` e usa 180 segundos por padrão.
 
-No ambiente local validado, `qwen2.5:3b` foi usado para manter o consumo
-compatível com o smoke runner. Esse modelo tem janela de 32.768 tokens e não
-atende ao requisito de 64.000 tokens do runtime Hermes atual. Neste host,
-`llama3.2:3b` está disponível com janela de 131.072 tokens e suporte a tool
-calling, por isso é o modelo recomendado para o gateway.
+No smoke runner isolado, `qwen2.5:3b` pode ser escolhido para reduzir a pressão
+de recursos, mas sua janela de 32.768 tokens não atende ao requisito atual do
+Hermes. Neste host, `llama3.2:3b` está disponível com janela de 131.072 tokens e
+suporte a tool calling, por isso é o modelo configurado para o gateway.
 
 O adaptador chama `POST /api/chat` e solicita JSON conforme schema. A escolha do
 modelo é configuração (`OLLAMA_MODEL`), não regra financeira. O prompt em

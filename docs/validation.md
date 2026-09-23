@@ -210,6 +210,31 @@ está em `--mode self-chat`; portanto, mesmo com uma allowlist hipotética, o
 aceite deve continuar recusando o round trip até o gateway ser iniciado em modo
 `bot`.
 
+#### Endurecimento operacional do Ollama — 22/09/2026
+
+- O runtime foi isolado em `docker-compose.ollama.yml`, fora da stack principal.
+  A porta `11434` está publicada somente em `127.0.0.1`; o container participa
+  apenas da rede dedicada `personal-finance-ollama-network` e os modelos usam o
+  volume externo persistente `personal-finance-ollama`.
+- O container antigo, cuja porta seria publicada em todas as interfaces, foi
+  renomeado para identificá-lo como aposentado e permanece parado. Seu volume
+  não foi apagado nem substituído.
+- `docker compose ... config` e inspeção do container confirmaram o bind de
+  loopback e a rede dedicada. O CI agora valida automaticamente esse contrato
+  e a persistência do volume.
+- `make cycle3-check` confirmou backend, `llama3.2:3b` (131.072 tokens) e plugin
+  Hermes. `make cycle3-ready` continua falhando de forma esperada porque o
+  processo efetivo do bridge permanece em `self-chat`.
+- Um smoke local de interpretação chamou somente o parser Ollama e identificou
+  `get_category_summary` para uma consulta sobre Transporte; não executou tool
+  financeira, não gravou dados e não substitui o teste pelo WhatsApp.
+- O modelo foi descarregado após o smoke para devolver RAM ao host. Em CPU, a
+  inferência levou vários segundos e elevou o uso de swap; não iniciar outras
+  inferências nem baixar modelos sem verificar espaço em disco e memória.
+- Nenhum round trip pelo WhatsApp foi realizado nesta etapa. A sessão continua
+  em `self-chat`; ativá-la em `bot` exige número de teste em E.164 na allowlist
+  e autorização explícita, pois mensagens recebidas podem acionar tools.
+
 Portanto, o Ciclo 3 ainda não é aceito como round trip. O aceite depende da
 allowlist, da inicialização do gateway Hermes e da execução dos cenários M–R
 com evidência sanitizada. `make cycle3-ready` deve passar somente depois desses

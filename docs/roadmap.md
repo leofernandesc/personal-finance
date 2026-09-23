@@ -35,12 +35,12 @@ R$ 0.
 
 ## Próximos passos priorizados
 
-O Ciclo 1 foi concluído localmente em 20/09/2026. O Ollama foi executado em
-container separado por falta de instalação nativa sem `sudo` interativo; o
-modelo validado foi `qwen2.5:3b`, adequado aos recursos disponíveis nesta
-máquina. O Ciclo 2A fortaleceu o diagnóstico e o onboarding sem alterar o
-domínio financeiro. O próximo milestone de integração é o Ciclo 3, que ainda
-depende do gateway Hermes e do pareamento do WhatsApp.
+O Ciclo 1 e o Ciclo 2A estão concluídos no código. Em 22/09/2026, o runtime
+opcional do Ollama foi endurecido para bind exclusivo em `127.0.0.1`, com rede
+Docker isolada e volume persistente; o modelo `llama3.2:3b` e o plugin Hermes
+passam no preflight local. O Ciclo 3 permanece aberto: o bridge conectado está
+em `self-chat`, ainda não houve autorização de um número para a allowlist e não
+foi validado um round trip real pelo WhatsApp.
 
 ### Ciclo 2A — diagnóstico e onboarding
 
@@ -59,19 +59,20 @@ mobile, incluindo rascunho, dívidas, edição e resumo.
 
 ### Ciclo 3 — fechar o milestone conversacional
 
-Estado atual: preparação técnica implementada; round trip ainda pendente.
+Estado atual (22/09/2026): API, modelo local, plugin e tool calls já foram
+exercitados em fluxos locais; runtime Ollama está limitado ao loopback. O
+preflight estrito falha corretamente porque o bridge efetivo ainda está em
+`self-chat`. Nenhuma mensagem real do WhatsApp foi processada nesta validação.
 
-1. Manter Ollama local (host ou container separado) com um modelo adequado a
-   português, tool calling e janela mínima de 64.000 tokens. O Ciclo 1 validou
-   `qwen2.5:3b` no runner, mas o gateway deste host usará `llama3.2:3b`, com
-   janela de 131.072 tokens.
+1. Manter Ollama local pelo Compose opcional com porta publicada somente em
+   `127.0.0.1:11434`; a verificação correspondente agora roda no CI. O gateway
+   usa `llama3.2:3b`, com janela observada de 131.072 tokens.
 2. Manter o plugin Hermes validado pela versão real disponível e o bridge
    configurado em `127.0.0.1:3300`, separado do frontend em `3000`.
-3. Parear uma sessão de desenvolvimento WhatsApp Web/Baileys usando um número
-   controlado e manter a allowlist explícita.
-4. Fazer `make cycle3-ready` passar sem warnings.
-5. Executar os cenários M–R de ponta a ponta e anexar evidências sanitizadas ao
-   documento de validação.
+3. Com autorização explícita, permitir um número de teste controlado na
+   allowlist e iniciar o bridge em `bot`; sem isso, mantê-lo em `self-chat`.
+4. Fazer `make cycle3-ready` passar sem warnings e executar os cenários M–R de
+   ponta a ponta, anexando evidências sanitizadas ao documento de validação.
 
 ### P1 — segurança operacional
 

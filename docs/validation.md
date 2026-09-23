@@ -370,6 +370,9 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - `make agent-check` passou com 30 testes, lint, formatação e compilação; o
   Hermes Plugin Doctor passou sem avisos e confirmou 14 tools e 2 hooks. A
   sintaxe do script shell também foi validada.
+- `make backend-check` passou com 45 testes. Um teste executa o script contra
+  um perfil fictício desatualizado e confirma que o executável Hermes falso
+  não é iniciado.
 - O runner de consulta não foi repetido nesta validação para evitar imprimir o
   saldo real da conta vinculada no log de execução; o teste automatizado prova
   que uma chamada de escrita não chega ao backend.

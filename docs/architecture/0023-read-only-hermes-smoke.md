@@ -31,6 +31,10 @@ Para manter a resposta final curta no modelo local, o smoke passa
 valor entre 1 e 2048 apenas no processo one-shot; nenhuma configuração
 persistente do Hermes é alterada.
 
+O one-shot também usa `--toolsets personal_finance`, evitando carregar
+ferramentas gerais (shell, browser ou outras integrações) nesse perfil e
+reduzindo o prompt apresentado ao modelo.
+
 ## Consequências
 
 - Prompts personalizados no smoke podem consultar, mas não mutar dados pelo
@@ -43,3 +47,5 @@ persistente do Hermes é alterada.
   acessar a API.
 - O limite de saída reduz o risco de uma resposta extensa prender um modelo
   local lento, sem alterar o limite do gateway normal.
+- A seleção do toolset limita o acesso do smoke ao conjunto financeiro já
+  protegido pelo modo somente leitura.

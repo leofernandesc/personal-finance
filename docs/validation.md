@@ -373,7 +373,7 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - `make backend-check` passou com 46 testes. Os testes executam o script contra
   um perfil fictício desatualizado e confirmam que o executável Hermes falso
   não é iniciado; também cobrem o limite padrão de tokens, override e valores
-  inválidos sem lançar o Hermes real.
+  inválidos e verificam `--toolsets personal_finance`, sem lançar o Hermes real.
 - O perfil Hermes isolado foi atualizado para `0.2.1` e passou no Plugin Doctor
   com 14 tools e 2 hooks. O processo gateway usa `HERMES_HOME=~/.hermes`, não o
   diretório isolado; não foi reiniciado e permaneceu em `self-chat`.

@@ -108,8 +108,8 @@ do round trip real de WhatsApp que depende de autorização explícita.
    Firefox desktop e mobile; o workflow de CI também os executa em uma stack
    temporária.
 2. O smoke Hermes é somente leitura por construção:
-   `PERSONAL_FINANCE_READ_ONLY` recusa chamadas não-GET antes da API, sem afetar
-   o perfil normal do gateway.
+   seleciona apenas `personal_finance` e `PERSONAL_FINANCE_READ_ONLY` recusa
+   chamadas não-GET antes da API, sem afetar o perfil normal do gateway.
 3. Scan automatizado WCAG 2 A/AA com axe cobre login, cadastro, dashboard e
    transações em desktop e mobile; o teste mobile abre a navegação lateral.
    Ainda falta a auditoria manual de teclado, foco e leitor de tela.

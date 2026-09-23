@@ -62,8 +62,9 @@ def test_local_hermes_smoke_limits_output_and_enables_read_only_mode(tmp_path):
     marker = tmp_path / "hermes-environment"
     fake_hermes = fake_bin / "hermes"
     fake_hermes.write_text(
-        '#!/bin/sh\nprintf "%s %s" "$PERSONAL_FINANCE_READ_ONLY" '
-        '"$HERMES_MAX_TOKENS" > "$HERMES_TEST_MARKER"\n',
+        '#!/bin/sh\nprintf "%s %s\\n" "$PERSONAL_FINANCE_READ_ONLY" '
+        '"$HERMES_MAX_TOKENS" > "$HERMES_TEST_MARKER"\n'
+        'printf "%s\\n" "$@" >> "$HERMES_TEST_MARKER"\n',
         encoding="utf-8",
     )
     fake_hermes.chmod(0o755)
@@ -84,7 +85,9 @@ def test_local_hermes_smoke_limits_output_and_enables_read_only_mode(tmp_path):
     )
 
     assert result.returncode == 0, result.stderr
-    assert marker.read_text(encoding="utf-8") == "1 512"
+    first_run_args = marker.read_text(encoding="utf-8").splitlines()
+    assert first_run_args[:1] == ["1 512"]
+    assert first_run_args[first_run_args.index("--toolsets") + 1] == "personal_finance"
 
     marker.unlink()
     environment["HERMES_SMOKE_MAX_TOKENS"] = "128"
@@ -98,7 +101,9 @@ def test_local_hermes_smoke_limits_output_and_enables_read_only_mode(tmp_path):
     )
 
     assert custom_limit.returncode == 0, custom_limit.stderr
-    assert marker.read_text(encoding="utf-8") == "1 128"
+    custom_run_args = marker.read_text(encoding="utf-8").splitlines()
+    assert custom_run_args[:1] == ["1 128"]
+    assert custom_run_args[custom_run_args.index("--toolsets") + 1] == "personal_finance"
 
     marker.unlink()
     environment["HERMES_SMOKE_MAX_TOKENS"] = "2049"

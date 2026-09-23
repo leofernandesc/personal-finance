@@ -396,7 +396,8 @@ sessão e tem como mensagem padrão “Quanto dinheiro tenho atualmente?”. Ele
 define `PERSONAL_FINANCE_READ_ONLY=1`. O plugin mantém o catálogo do manifesto,
 mas recusa chamadas de escrita localmente, antes de chegar à API. Assim, nem
 um `HERMES_SMOKE_TEXT` personalizado pode criar, editar ou excluir dados
-financeiros pelo plugin. A geração fica limitada a 512 tokens por padrão; se
+financeiros pelo plugin. O Hermes executa somente o toolset `personal_finance`
+nesse comando. A geração fica limitada a 512 tokens por padrão; se
 necessário, ajuste `HERMES_SMOKE_MAX_TOKENS` (1–2048) somente para esse smoke.
 O script não inicia o gateway nem o WhatsApp e não substitui o round trip do
 canal.

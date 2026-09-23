@@ -66,5 +66,6 @@ export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 
 exec hermes -z "$smoke_text" \
   --reasoning none \
+  --toolsets personal_finance \
   --in "$repo_root" \
   --no-restore-cwd

@@ -59,11 +59,14 @@ mobile, incluindo rascunho, dívidas, edição e resumo.
 
 ### Ciclo 3 — fechar o milestone conversacional
 
-Estado atual (22/09/2026): API, modelo local, plugin e tool calls já foram
-exercitados em fluxos locais; runtime Ollama está limitado ao loopback. O
-preflight estrito falha corretamente porque o bridge efetivo ainda está em
-`self-chat`. O usuário optou por manter esse modo; nenhuma mensagem real do
-WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
+Estado atual (23/09/2026): API, modelo local e plugin foram exercitados em
+fluxos locais; runtime Ollama está limitado ao loopback. O perfil Hermes
+isolado foi atualizado para `0.2.1`, sem reiniciar o gateway, que continua em
+`self-chat` por escolha do usuário. No smoke de consulta, o primeiro `get_balance`
+chegou ao backend e foi auditado como sucesso, mas a resposta final do CLI não
+concluiu no limite de 240 s; uma tentativa com 128 tokens não produziu chamada
+auditada. Portanto o round trip conversacional local continua sem aceite, além
+do round trip real de WhatsApp que depende de autorização explícita.
 
 1. Manter Ollama local pelo Compose opcional com porta publicada somente em
    `127.0.0.1:11434`; a verificação correspondente agora roda no CI. O gateway

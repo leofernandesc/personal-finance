@@ -175,7 +175,9 @@ que o gateway usaria. Ele não inicia WhatsApp nem altera o gateway padrão.
 Durante esse comando, `PERSONAL_FINANCE_READ_ONLY=1` mantém o catálogo do
 manifesto, mas recusa localmente chamadas não-GET antes de acessar a API,
 inclusive em mensagens personalizadas. A configuração não é aplicada ao
-gateway normal.
+gateway normal. A geração do comando fica limitada a 512 tokens por padrão;
+`HERMES_SMOKE_MAX_TOKENS` permite ajustar o limite de 1 a 2048 sem alterar a
+configuração persistente do Hermes.
 
 Antes do pareamento, execute a checagem somente leitura:
 

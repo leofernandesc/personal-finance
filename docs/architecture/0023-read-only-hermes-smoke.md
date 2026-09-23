@@ -26,6 +26,11 @@ e recusa executar se estiverem diferentes, imprimindo o comando para atualizar
 o plugin. Mudanças de comportamento do plugin exigem bump de versão para o
 smoke não usar silenciosamente uma cópia antiga.
 
+Para manter a resposta final curta no modelo local, o smoke passa
+`HERMES_MAX_TOKENS=512` por padrão. `HERMES_SMOKE_MAX_TOKENS` permite ajustar o
+valor entre 1 e 2048 apenas no processo one-shot; nenhuma configuração
+persistente do Hermes é alterada.
+
 ## Consequências
 
 - Prompts personalizados no smoke podem consultar, mas não mutar dados pelo
@@ -36,3 +41,5 @@ smoke não usar silenciosamente uma cópia antiga.
   perfil Hermes isolado documentado.
 - Perfis com uma versão antiga do plugin falham antes de iniciar o modelo ou
   acessar a API.
+- O limite de saída reduz o risco de uma resposta extensa prender um modelo
+  local lento, sem alterar o limite do gateway normal.

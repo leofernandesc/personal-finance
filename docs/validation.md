@@ -370,15 +370,25 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
 - `make agent-check` passou com 30 testes, lint, formatação e compilação; o
   Hermes Plugin Doctor passou sem avisos e confirmou 14 tools e 2 hooks. A
   sintaxe do script shell também foi validada.
-- `make backend-check` passou com 45 testes. Um teste executa o script contra
-  um perfil fictício desatualizado e confirma que o executável Hermes falso
-  não é iniciado.
-- O runner de consulta não foi repetido nesta validação para evitar imprimir o
-  saldo real da conta vinculada no log de execução; o teste automatizado prova
-  que uma chamada de escrita não chega ao backend.
-- O perfil instalado neste host está na versão `0.2.0`, anterior à versão de
-  código `0.2.1`. O script agora interrompe o smoke antes de iniciar o LLM ou
-  chamar a API e fornece o comando para atualizar o plugin nesse perfil.
+- `make backend-check` passou com 46 testes. Os testes executam o script contra
+  um perfil fictício desatualizado e confirmam que o executável Hermes falso
+  não é iniciado; também cobrem o limite padrão de tokens, override e valores
+  inválidos sem lançar o Hermes real.
+- O perfil Hermes isolado foi atualizado para `0.2.1` e passou no Plugin Doctor
+  com 14 tools e 2 hooks. O processo gateway usa `HERMES_HOME=~/.hermes`, não o
+  diretório isolado; não foi reiniciado e permaneceu em `self-chat`.
+- No smoke `codex-readonly-smoke-20260923-001`, o PostgreSQL registrou a
+  mensagem e `get_balance` como `success`; porém o CLI não produziu a resposta
+  final antes do timeout de 240 s. Nenhuma tool de escrita estava habilitada.
+- No smoke `codex-readonly-smoke-20260923-002`, com limite de 128 tokens, não
+  houve chamada auditada nem marcador da resposta esperada, então a execução não
+  conta como round trip aprovado. O limite padrão agora é 512 tokens; ainda
+  falta validá-lo com uma resposta completa.
+- Nas duas tentativas, o processo `llama-server` continuou consumindo cerca de
+  265% de CPU sem conexões abertas após o cliente encerrar. O modelo foi
+  descarregado pelo comando `ollama stop`; o serviço Ollama permaneceu ativo,
+  a API continuou pronta e a memória disponível voltou a 3,4 GiB. O modelo está
+  descarregado no momento desta validação.
 
 ## Validações dependentes do ambiente
 

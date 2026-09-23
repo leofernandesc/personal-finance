@@ -7,6 +7,12 @@ profile_home=${HERMES_PROFILE_HOME:-"${HOME}/.hermes/profiles/personal-finance"}
 smoke_sender=${HERMES_SMOKE_SENDER:-"+5592999999999"}
 smoke_message_id=${HERMES_SMOKE_MESSAGE_ID:-"hermes-local-smoke-$(date -u +%Y%m%dT%H%M%SZ)"}
 smoke_text=${HERMES_SMOKE_TEXT:-"Use a ferramenta get_balance e responda apenas com os valores retornados. Quanto dinheiro tenho atualmente?"}
+smoke_max_tokens=${HERMES_SMOKE_MAX_TOKENS:-512}
+
+if [[ ! "$smoke_max_tokens" =~ ^[1-9][0-9]{0,3}$ ]] || ((smoke_max_tokens > 2048)); then
+  echo "HERMES_SMOKE_MAX_TOKENS deve ser um inteiro entre 1 e 2048" >&2
+  exit 1
+fi
 
 command -v hermes >/dev/null 2>&1 || {
   echo "hermes não foi encontrado no PATH" >&2
@@ -54,6 +60,7 @@ export HERMES_SESSION_PLATFORM=whatsapp
 export HERMES_SESSION_USER_ID="$smoke_sender"
 export HERMES_SESSION_MESSAGE_ID="$smoke_message_id"
 export PERSONAL_FINANCE_READ_ONLY=1
+export HERMES_MAX_TOKENS="$smoke_max_tokens"
 export PERSONAL_FINANCE_API_URL="${PERSONAL_FINANCE_API_URL:-http://127.0.0.1:8000/api/v1/integrations/agent}"
 export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 

@@ -101,9 +101,9 @@ WhatsApp foi processada nem será processada pela sessão bot nesta etapa.
    transferência, orçamento, meta e dashboard foram adicionados e passaram em
    Firefox desktop e mobile; o workflow de CI também os executa em uma stack
    temporária.
-2. Scan automatizado com axe foi adicionado para login e cadastro em desktop e
-   mobile. Ainda falta a auditoria manual de teclado, foco, leitor de tela e
-   contraste, incluindo as telas autenticadas.
+2. Scan automatizado WCAG 2 A/AA com axe cobre login, cadastro, dashboard e
+   transações em desktop e mobile; o teste mobile abre a navegação lateral.
+   Ainda falta a auditoria manual de teclado, foco e leitor de tela.
 3. Paginação por cursor implementada no histórico da API e no botão “Carregar
    mais” do frontend. O E2E dedicado agora cobre duas páginas, falha transitória,
    retry, preservação da primeira página e ausência de duplicatas em Firefox

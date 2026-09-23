@@ -335,6 +335,21 @@ O Ciclo 3 continua dependente do gateway Hermes/Baileys e do pareamento manual.
   selecionava o anunciador vazio de navegação do Next.js. O teste foi
   restringido ao texto exato do alerta e repetido com sucesso nos dois projetos.
 
+## Acessibilidade de telas autenticadas — 22/09/2026
+
+- O axe agora examina dashboard e histórico depois de criar uma sessão E2E,
+  além das páginas públicas de login e cadastro. O cenário roda no desktop e
+  no mobile; neste último, abre o menu lateral antes do scan.
+- A primeira execução encontrou contraste insuficiente (2,8:1) nos rótulos
+  “Seu dinheiro” e “Organizar”, causados por `text-muted/70` sobre branco. Os
+  rótulos agora usam a cor opaca `text-muted`; o axe passou nas duas rotas e
+  nos dois projetos de navegador.
+- `make frontend-check` também passou: 25 testes Vitest, lint, typecheck e build.
+  Os dados E2E ficaram numa stack e volume PostgreSQL temporários, removidos ao
+  final; a API principal continuou saudável.
+- Isso não substitui a revisão manual de navegação por teclado, leitor de tela
+  e ordem de foco, que continua pendente.
+
 ## Validações dependentes do ambiente
 
 - Ollama precisa estar instalado e com um modelo baixado para validar a

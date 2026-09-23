@@ -72,11 +72,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </Link>
 
       <nav aria-label="Navegação principal" className="space-y-1">
-        <p className="mb-3 px-3 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-muted/70">Seu dinheiro</p>
+        <p className="mb-3 px-3 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-muted">Seu dinheiro</p>
         {primaryNav.map((item) => <NavLink key={item.href} item={item} onNavigate={onNavigate} />)}
       </nav>
       <nav aria-label="Navegação secundária" className="mt-8 space-y-1">
-        <p className="mb-3 px-3 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-muted/70">Organizar</p>
+        <p className="mb-3 px-3 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-muted">Organizar</p>
         {secondaryNav.map((item) => <NavLink key={item.href} item={item} onNavigate={onNavigate} />)}
       </nav>
 

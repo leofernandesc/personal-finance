@@ -5,6 +5,17 @@ multiusuário e uma camada conversacional preparada para Hermes, Ollama e
 WhatsApp Web. O objetivo do MVP é registrar e consultar a vida financeira sem
 entregar a fonte de verdade a um modelo de linguagem.
 
+## O projeto em 30 segundos
+
+- **Problema:** reunir dados e decisões financeiras pessoais em uma interface organizada, com histórico confiável.
+- **Produto:** aplicação web com dashboard, transações, orçamentos, relatórios e metas.
+- **Integração de IA:** agente conversacional experimental com Hermes e Ollama, conectado a ferramentas HTTP da API.
+- **Responsabilidade do backend:** validar autorização, regras financeiras e persistência; o modelo não recebe acesso direto ao banco nem cria SQL livre.
+- **Evidência disponível:** fluxos web e parte da integração conversacional validados localmente, com testes automatizados.
+- **Limite atual:** a operação completa por WhatsApp ainda não foi validada de ponta a ponta em uma sessão real controlada.
+
+É uma demonstração de como integrar IA a um processo de negócio **sem delegar a ela a execução irrestrita de operações financeiras**.
+
 ## Estado atual
 
 O MVP web está implementado: autenticação local, diagnóstico financeiro
